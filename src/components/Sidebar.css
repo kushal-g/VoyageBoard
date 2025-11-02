@@ -1,0 +1,209 @@
+/**
+ * Sidebar Component Styles
+ * 
+ * iOS-inspired design with:
+ * - Light theme background
+ * - Subtle shadows for depth
+ * - Rounded corners
+ * - Smooth transitions and hover effects
+ * - Modern typography and spacing
+ */
+
+/* Main sidebar container */
+.sidebar {
+  /* Fixed positioning on the left side */
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh; /* Full viewport height */
+  width: 280px; /* Fixed width for sidebar */
+  
+  /* iOS-style light background */
+  background-color: #ffffff;
+  
+  /* Subtle shadow on the right edge for depth */
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  
+  /* Flexbox layout for vertical stacking */
+  display: flex;
+  flex-direction: column;
+  
+  /* Padding and spacing */
+  padding: 20px 0;
+  
+  /* Ensure sidebar stays above other content */
+  z-index: 1000;
+}
+
+/* Search Container Section */
+.search-container {
+  padding: 16px;
+  padding-bottom: 8px;
+}
+
+/* Search Bar Styling */
+.search-bar {
+  /* Flexbox for horizontal layout of icon, input, and button */
+  display: flex;
+  align-items: center;
+  
+  /* Light gray background matching iOS search bars */
+  background-color: #f5f5f7;
+  
+  /* Rounded corners - More rounded iOS style */
+  border-radius: 20px;
+  
+  /* Padding for internal spacing */
+  padding: 8px 12px;
+  
+  /* Border to match iOS aesthetic */
+  border: 2px solid #e0e0e0;
+  
+  /* Smooth transitions */
+  transition: background-color 0.2s ease;
+}
+
+/* Search bar hover effect */
+.search-bar:focus-within {
+  background-color: #ffffff;
+  border-color: #007aff; /* iOS blue accent */
+}
+
+/* Magnifying glass icon - Material Icon styling */
+.search-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  opacity: 0.6;
+  color: #8e8e93; /* iOS gray color */
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Search input field */
+.search-input {
+  /* Take up remaining space */
+  flex: 1;
+  
+  /* Remove default styling */
+  border: none;
+  background: transparent;
+  outline: none;
+  
+  /* Typography - SF Pro font */
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: #000000;
+  
+  /* Placeholder styling */
+  &::placeholder {
+    color: #8e8e93;
+  }
+}
+
+/* Menu Items Container */
+.sidebar-menu {
+  /* Flexbox for vertical menu layout */
+  display: flex;
+  flex-direction: column;
+  
+  /* Padding for menu items */
+  padding: 8px 16px;
+  
+  /* Gap between items */
+  gap: 4px;
+}
+
+/* Individual Menu Item */
+.menu-item {
+  /* Flexbox for horizontal icon + label layout */
+  display: flex;
+  align-items: center;
+  
+  /* Remove default button styling */
+  border: none;
+  background: transparent;
+  
+  /* Padding for touch targets (iOS recommends 44px minimum) */
+  padding: 12px 16px;
+  
+  /* Rounded corners - More rounded iOS style */
+  border-radius: 20px;
+  
+  /* Cursor pointer */
+  cursor: pointer;
+  
+  /* Smooth transitions */
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  
+  /* Text alignment */
+  text-align: left;
+  
+  /* Full width */
+  width: 100%;
+}
+
+/* Hover effect - subtle background highlight */
+.menu-item:hover {
+  background-color: #f5f5f7;
+}
+
+/* Active/pressed state */
+.menu-item:active {
+  background-color: #e5e5ea;
+  transform: scale(0.98);
+}
+
+/* Selected state - highlighted item */
+.menu-item.selected {
+  background-color: #e8f4fd;
+}
+
+/* Menu Icon Styling - Container for Material Icons */
+.menu-icon {
+  /* Fixed width for alignment */
+  width: 32px;
+  height: 32px;
+  
+  /* Center icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Margin spacing */
+  margin-right: 12px;
+  
+  /* Icon sizing - Material Icons */
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+/* Menu Label Text */
+.menu-label {
+  /* Typography - SF Pro font */
+  font-size: 16px;
+  font-weight: 400;
+  /* SF Pro font stack - will use SF Pro on macOS/iOS */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  
+  /* Text color - specified color for menu labels */
+  color: #333333;
+  
+  /* Smooth transitions */
+  transition: color 0.2s ease;
+}
+
+/* Selected menu item text color */
+.menu-item.selected .menu-label {
+  color: #007aff; /* iOS blue for selected items */
+}
+
+/* Responsive Design - Adjust sidebar for smaller screens */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 240px;
+  }
+}
