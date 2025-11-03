@@ -1,0 +1,29 @@
+.starting-content {
+  --background: #ffffff;
+}
+
+.starting-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app-icon {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 40px;
+  object-fit: contain;
+}
+
+.get-started-chip {
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+.get-started-chip ion-icon {
+  margin-left: 4px;
+}
+

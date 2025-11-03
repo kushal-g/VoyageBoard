@@ -1,10 +1,68 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* Ionic Core Styles */
+@import '@ionic/react/css/core.css';
+@import '@ionic/react/css/normalize.css';
+@import '@ionic/react/css/structure.css';
+@import '@ionic/react/css/typography.css';
+@import '@ionic/react/css/display.css';
+@import '@ionic/react/css/padding.css';
+@import '@ionic/react/css/float-elements.css';
+@import '@ionic/react/css/text-alignment.css';
+@import '@ionic/react/css/text-transformation.css';
+@import '@ionic/react/css/flex-utils.css';
+@import '@ionic/react/css/utils.bundle.css';
+
+/* iOS Light Mode Styling - Light mode is the default in Ionic */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+}
+
+/* UI labels and buttons */
+.ui-label,
+.ui-button,
+ion-button,
+ion-chip {
+  font-weight: 500;
+}
+
+/* Section headers */
+.section-header,
+h1,
+h2,
+h3 {
+  font-weight: 600;
+}
+
+/* Status bar styling */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 44px;
+  background-color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-bar ion-icon {
+  font-size: 16px;
+  color: #000000;
 }
