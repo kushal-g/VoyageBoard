@@ -1,0 +1,1 @@
+export type TOOL = "DOODLE" | "ERASER" | "TEXT" | "LOCATION_PIN" | "TRANSIT" | "GROUP"

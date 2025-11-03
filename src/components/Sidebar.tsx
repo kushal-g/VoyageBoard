@@ -1,27 +1,21 @@
-import { useState } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import './Sidebar.css'
+import type { TOOL } from '../constants/types'
+import { tools } from '../constants/constants'
+
+interface SidebarProps {
+  currentTool: TOOL,
+  setCurrentTool: Dispatch<SetStateAction<TOOL>>
+}
 
 /**
  * Sidebar Component
  * Uses Material Icons for consistent iOS-style iconography
  */
-function Sidebar() {
-  // State to track which menu item is currently selected/highlighted
-  const [selectedItem, setSelectedItem] = useState<string | null>('location') // Default to location being selected
+function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
   // State for search input value
   const [searchQuery, setSearchQuery] = useState('')
-  /**
-   * Menu items configuration
-   * Each item uses Material Icons with appropriate icon names
-   */
-  const menuItems = [
-    { id: 'location', label: 'Location', icon: 'place', color: '#ff3b30' }, // Red location pin
-    { id: 'distance', label: 'Distance Measure', icon: 'straighten', color: '#000000' },
-    { id: 'doodle', label: 'Doodle', icon: 'draw', color: '#000000' },
-    { id: 'text', label: 'Text', icon: 'text_fields', color: '#000000' },
-    { id: 'eraser', label: 'Eraser', icon: 'clear', color: '#ff2d55' }, // Pink eraser
-    { id: 'group', label: 'Group', icon: 'group', color: '#000000' },
-  ]
+
 
   /**
    * Handles menu item click events
@@ -29,8 +23,8 @@ function Sidebar() {
    * 
    * @param {string} itemId - The ID of the clicked menu item
    */
-  const handleItemClick = (itemId: string) => {
-    setSelectedItem(itemId)
+  const handleItemClick = (itemId: TOOL) => {
+    setCurrentTool(itemId)
     // Here you would typically trigger the actual tool/feature
     console.log(`Selected tool: ${itemId}`)
   }
@@ -58,7 +52,7 @@ function Sidebar() {
           <span className="material-symbols-outlined search-icon">
             search
           </span>
-          
+
           {/* Search input field */}
           <input
             type="text"
@@ -75,23 +69,23 @@ function Sidebar() {
         List of tool/feature options with icons and labels
       */}
       <nav className="sidebar-menu">
-        {menuItems.map((item) => (
+        {tools.map((tool) => (
           <button
-            key={item.id}
-            className={`menu-item ${selectedItem === item.id ? 'selected' : ''}`}
-            onClick={() => handleItemClick(item.id)}
-            aria-label={item.label}
+            key={tool.id}
+            className={`menu-item ${currentTool === tool.id ? 'selected' : ''}`}
+            onClick={() => handleItemClick(tool.id)}
+            aria-label={tool.label}
           >
             {/* Material Icon - uses icon name from menuItems config */}
-            <span 
+            <span
               className="material-symbols-outlined menu-icon"
-              style={{ color: item.color }}
+              style={{ color: tool.color }}
             >
-              {item.icon}
+              {tool.icon}
             </span>
-            
+
             {/* Menu item label text */}
-            <span className="menu-label">{item.label}</span>
+            <span className="menu-label">{tool.label}</span>
           </button>
         ))}
       </nav>
