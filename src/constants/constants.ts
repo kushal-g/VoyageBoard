@@ -8,10 +8,10 @@ interface Tool {
 }
 
 export const tools: Tool[] = [
-    { id: "LOCATION_PIN", label: 'Location', icon: 'place', color: '#ff3b30' }, // Red location pin
+    { id: "LOCATION_PIN", label: 'Location', icon: 'place', color: '#ff3b30' },
     { id: "TRANSIT", label: 'Transit', icon: 'directions_bus', color: '#000000' },
     { id: "DOODLE", label: 'Doodle', icon: 'draw', color: '#000000' },
     { id: "TEXT", label: 'Text', icon: 'text_fields', color: '#000000' },
-    { id: "ERASER", label: 'Eraser', icon: 'clear', color: '#ff2d55' }, // Pink eraser
+    { id: "ERASER", label: 'Eraser', icon: 'ink_eraser', color: '#ff6d88ff' },
     { id: "GROUP", label: 'Group', icon: 'group', color: '#000000' },
 ]
