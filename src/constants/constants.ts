@@ -9,7 +9,7 @@ interface Tool {
 
 export const tools: Tool[] = [
     { id: "LOCATION_PIN", label: 'Location', icon: 'place', color: '#ff3b30' }, // Red location pin
-    { id: "TRANSIT", label: 'Distance Measure', icon: 'straighten', color: '#000000' },
+    { id: "TRANSIT", label: 'Transit', icon: 'directions_bus', color: '#000000' },
     { id: "DOODLE", label: 'Doodle', icon: 'draw', color: '#000000' },
     { id: "TEXT", label: 'Text', icon: 'text_fields', color: '#000000' },
     { id: "ERASER", label: 'Eraser', icon: 'clear', color: '#ff2d55' }, // Pink eraser
