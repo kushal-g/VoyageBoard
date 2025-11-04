@@ -1,6 +1,7 @@
 import { IonIcon } from '@ionic/react'
 import { cellular, wifi, batteryHalf } from 'ionicons/icons'
 import { useEffect, useState } from 'react'
+import './AppStatusBar.css'
 
 const AppStatusBar = () => {
   const [currentTime, setCurrentTime] = useState('')
@@ -32,16 +33,19 @@ const AppStatusBar = () => {
   }, [])
 
   return (
-    <div className="status-bar">
+    <div className="status-bar" role="status" aria-label="device status bar">
+      {/* Left: time and date (iOS style) */}
       <div className="status-left">
+        <span className="status-time">{currentTime}</span>
+        <span className="status-date">{currentDate}</span>
+      </div>
+
+      {/* Right: connectivity / battery icons */}
+      <div className="status-right" aria-hidden>
         <IonIcon icon={cellular} />
         <IonIcon icon={wifi} />
-        <span>100%</span>
+        <span className="battery-percent">100%</span>
         <IonIcon icon={batteryHalf} />
-      </div>
-      <div className="status-right">
-        <span>{currentTime}</span>
-        <span>{currentDate}</span>
       </div>
     </div>
   )

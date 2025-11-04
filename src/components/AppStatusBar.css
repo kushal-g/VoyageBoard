@@ -1,0 +1,71 @@
+.status-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  z-index: 1100;
+  pointer-events: none; /* non-interactive; icons are decorative */
+  background: transparent;
+  color: #000000;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.status-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.status-right ion-icon {
+  font-size: 18px;
+  color: #000000;
+}
+
+.battery-percent {
+  font-size: 12px;
+  color: #000000;
+}
+
+.status-time {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-date {
+  display: block;
+  font-size: 12px;
+  color: #6b6b6b;
+}
+
+/* Small screens adjustments */
+@media (max-width: 420px) {
+  .status-bar {
+    padding: 4px 10px;
+    height: 36px;
+  }
+  .status-left ion-icon {
+    font-size: 16px;
+  }
+  .status-time {
+    font-size: 13px;
+  }
+}

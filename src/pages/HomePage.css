@@ -1,56 +1,145 @@
 .home-content {
   --background: #ffffff;
+  padding: 0;
 }
 
-.home-page {
-  padding: 20px;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 60px 35px 20px;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+  color: #111;
 }
 
 .subtitle {
-  text-align: center;
+  font-size: 15px;
+  color: #777;
+  margin-top: 4px;
   font-weight: 400;
-  margin-bottom: 40px;
 }
 
+.create-button {
+  --border-radius: 9999px;
+  --padding-start: 15px;
+  --padding-end: 15px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  font-weight: 400;
+  font-size: 11px;
+}
+
+/* Empty State */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  color: #8e8e93;
+  margin-top: 80px;
+  text-align: center;
+  color: #666;
 }
 
 .empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 70px;
   color: #c7c7cc;
+  margin-bottom: 5px;
 }
 
-.empty-state p {
-  font-size: 16px;
-  font-weight: 400;
+.empty-secondary {
+  font-size: 14px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* Trip Card List */
+.tripboards-list {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 5px 5px;
+}
+
+.tripcard {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 2px 4px 14px rgba(0,0,0,0.05);
+}
+
+/* Media section */
+.card-media-wrapper {
+  position: relative;
+}
+
+.tripcard img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+/* Ellipsis button inside card */
+.card-ellipsis {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  --background: rgba(255,255,255,0.85);
+  --border-radius: 50%;
+  --padding-start: 6px;
+  --padding-end: 6px;
+}
+
+/* Card text */
+ion-card-title {
+  font-weight: 600;
+  font-size: 17px;
+}
+
+ion-card-subtitle {
+  color: #777;
+  margin-top: 4px;
+}
+
+/* Photo cover trip card (full-bleed image, overlay text, ellipsis) */
+.trip-card {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+.trip-card-image-wrapper {
+  position: relative;
+}
+.trip-card img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+.trip-card-ellipsis {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  --background: rgba(255,255,255,0.7);
+  --border-radius: 50%;
+}
+.trip-card-overlay {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.trip-card-title {
+  font-weight: 600;
   margin: 0;
 }
-
-.create-chip {
-  margin-right: 16px;
+.trip-card-subtitle {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 2px;
 }
-
-.create-chip ion-icon {
-  margin-left: 4px;
-}
-
-.tripboards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tripboard-item {
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  font-weight: 500;
-}
-
