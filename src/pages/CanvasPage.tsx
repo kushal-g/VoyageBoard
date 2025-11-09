@@ -35,42 +35,52 @@ export default function CanvasPage({
   const routeTrip = location.state?.trip;
   const tripId = params.id;
   const tripName = routeTrip?.name ?? (_tripName ? _tripName : tripId ? `Trip Board ${tripId}` : 'Trip Board');
-  const lastEdited = routeTrip?.lastEdited ?? _lastEdited ?? new Date().toLocaleString();
+
+  // Ensure lastEdited is always a string
+  const rawLastEdited: any = routeTrip?.lastEdited ?? _lastEdited;
+  const lastEdited = typeof rawLastEdited === 'string'
+    ? rawLastEdited
+    : rawLastEdited instanceof Date
+      ? rawLastEdited.toLocaleString()
+      : new Date().toLocaleString();
 
   return (
     <IonPage>
       <AppStatusBar />
 
       <IonHeader collapse="condense">
-        <IonToolbar className="canvas-header">
 
-          <IonButtons slot="start">
-            <IonButton routerLink="/home">
-              <IonIcon icon={chevronBack} />
-            </IonButton>
+      </IonHeader>
+      <IonToolbar className="canvas-header">
 
-            <IonButton onClick={() => menuController.open('canvas-tools-menu')}>
-              <IonIcon icon={settingsOutline} />
-            </IonButton>
-          </IonButtons>
+        <IonButtons slot="start">
+          <IonButton routerLink="/home">
+            <IonIcon icon={chevronBack} />
+          </IonButton>
 
+          <IonButton onClick={() => menuController.open('canvas-tools-menu')}>
+            <IonIcon icon={settingsOutline} />
+          </IonButton>
+        </IonButtons>
+
+        <IonTitle className="canvas-title-container">
           <div className="canvas-title-block">
-            <IonTitle className="canvas-title">{tripName}</IonTitle>
+            <div className="canvas-title">{tripName}</div>
             <IonText className="canvas-subtitle">Last Edited: {lastEdited}</IonText>
           </div>
+        </IonTitle>
 
-          <IonButtons slot="end">
-            <IonButton onClick={() => menuController.open('days-sidebar-menu')}>
-              <IonIcon icon={calendarOutline} />
-            </IonButton>
+        <IonButtons slot="end">
+          <IonButton onClick={() => menuController.open('days-sidebar-menu')}>
+            <IonIcon icon={calendarOutline} />
+          </IonButton>
 
-            <IonButton routerLink="/idea-dump">
-              <IonIcon icon={bulbOutline} />
-            </IonButton>
-          </IonButtons>
+          <IonButton routerLink="/idea-dump">
+            <IonIcon icon={bulbOutline} />
+          </IonButton>
+        </IonButtons>
 
-        </IonToolbar>
-      </IonHeader>
+      </IonToolbar>
 
       <IonContent id="canvas-main-content" className="canvas-content">
         <div className="canvas-area" />
