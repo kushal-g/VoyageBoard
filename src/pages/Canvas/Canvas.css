@@ -3,12 +3,14 @@
     height: 100vh;
     position: relative;
     overflow: hidden;
+    pointer-events: none;
 }
 
 .drawing-canvas {
     display: block;
     cursor: crosshair;
     touch-action: none;
+    pointer-events: auto;
 }
 
 .eraser-cursor {
@@ -36,6 +38,7 @@
     align-items: center;
     z-index: 1000;
     border: 1px solid rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
 }
 
 .toolbar-group {

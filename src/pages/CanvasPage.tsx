@@ -1,4 +1,4 @@
-import { } from "react";
+import { useState } from "react";
 import { menuController } from '@ionic/core';
 import { useParams, useLocation } from 'react-router-dom';
 import {
@@ -12,13 +12,26 @@ import {
   IonTitle,
   IonText,
   IonMenu,
-  IonFab,
-  IonFabButton,
+  IonList,
+  IonItem,
+  IonLabel,
 } from "@ionic/react";
-import { chevronBack, settingsOutline, calendarOutline, bulbOutline, menuOutline } from "ionicons/icons";
+import {
+  chevronBack,
+  settingsOutline,
+  calendarOutline,
+  bulbOutline,
+  brushOutline,
+  trashOutline,
+  textOutline,
+  locationOutline,
+  carOutline,
+  peopleOutline,
+} from "ionicons/icons";
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
 import Canvas from "./Canvas/Canvas";
+import type { TOOL } from "../constants/types";
 
 interface CanvasPageProps {
   tripName?: string;
@@ -31,6 +44,7 @@ export default function CanvasPage({
 }: CanvasPageProps) {
 
   // menus are controlled via the global menuController; local state not required
+  const [currentTool, setCurrentTool] = useState<TOOL>("DOODLE");
 
   const params = useParams<{ id?: string }>();
   const location = useLocation<{ trip?: { name?: string; lastEdited?: string } } | undefined>();
@@ -47,19 +61,17 @@ export default function CanvasPage({
       ? rawLastEdited.toLocaleString()
       : new Date().toLocaleString();
 
+  const handleToolChange = (tool: TOOL) => {
+    setCurrentTool(tool);
+    menuController.close('canvas-tools-menu');
+  };
+
   return (
     <IonPage>
       <AppStatusBar />
 
       <IonContent id="canvas-main-content" className="canvas-content">
         <div className="canvas-area" />
-
-        {/* Floating Action Button to open left sidebar */}
-        <IonFab vertical="bottom" horizontal="start" slot="fixed">
-          <IonFabButton onClick={() => menuController.open('canvas-tools-menu')}>
-            <IonIcon icon={menuOutline} />
-          </IonFabButton>
-        </IonFab>
       </IonContent>
 
       <IonToolbar className="canvas-header">
@@ -93,19 +105,48 @@ export default function CanvasPage({
 
       </IonToolbar>
       {/* Left Sidebar: Canvas Tools (IonMenu overlay) */}
-      <IonMenu side="start" type="overlay" contentId="canvas-main-content" menuId="canvas-tools-menu">
+      <IonMenu side="start" type="overlay" contentId="canvas-main-content" menuId="canvas-tools-menu" swipeGesture={true}>
         <IonHeader>
           <IonToolbar>
-            <IonTitle>Tools</IonTitle>
+            <IonTitle>Canvas Tools</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent className="sidebar-content">
-          <IonButton onClick={() => menuController.close('canvas-tools-menu')}>Close</IonButton>
-          <h2>TODO: Canvas Actions Menu</h2>
+          <IonList>
+            <IonItem button onClick={() => handleToolChange("DOODLE")} className={currentTool === "DOODLE" ? "tool-active" : ""}>
+              <IonIcon icon={brushOutline} slot="start" />
+              <IonLabel>Doodle</IonLabel>
+            </IonItem>
+
+            <IonItem button onClick={() => handleToolChange("ERASER")} className={currentTool === "ERASER" ? "tool-active" : ""}>
+              <IonIcon icon={trashOutline} slot="start" />
+              <IonLabel>Eraser</IonLabel>
+            </IonItem>
+
+            <IonItem button onClick={() => handleToolChange("TEXT")} className={currentTool === "TEXT" ? "tool-active" : ""} disabled>
+              <IonIcon icon={textOutline} slot="start" />
+              <IonLabel>Text (Coming Soon)</IonLabel>
+            </IonItem>
+
+            <IonItem button onClick={() => handleToolChange("LOCATION_PIN")} className={currentTool === "LOCATION_PIN" ? "tool-active" : ""} disabled>
+              <IonIcon icon={locationOutline} slot="start" />
+              <IonLabel>Location Pin (Coming Soon)</IonLabel>
+            </IonItem>
+
+            <IonItem button onClick={() => handleToolChange("TRANSIT")} className={currentTool === "TRANSIT" ? "tool-active" : ""} disabled>
+              <IonIcon icon={carOutline} slot="start" />
+              <IonLabel>Transit (Coming Soon)</IonLabel>
+            </IonItem>
+
+            <IonItem button onClick={() => handleToolChange("GROUP")} className={currentTool === "GROUP" ? "tool-active" : ""} disabled>
+              <IonIcon icon={peopleOutline} slot="start" />
+              <IonLabel>Group (Coming Soon)</IonLabel>
+            </IonItem>
+          </IonList>
         </IonContent>
       </IonMenu>
 
-      <Canvas currentTool="DOODLE" />
+      <Canvas currentTool={currentTool} />
 
       {/* Right Sidebar: Days List (IonMenu overlay) */}
       <IonMenu side="end" type="overlay" contentId="canvas-main-content" menuId="days-sidebar-menu">
