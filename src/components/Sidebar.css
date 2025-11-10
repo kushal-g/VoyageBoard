@@ -99,9 +99,10 @@
   color: #000000;
   
   /* Placeholder styling */
-  &::placeholder {
-    color: #8e8e93;
-  }
+}
+
+.search-input::placeholder {
+  color: #8e8e93;
 }
 
 /* Menu Items Container */

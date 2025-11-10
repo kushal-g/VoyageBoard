@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { menuController } from "@ionic/core";
+// src/pages/CanvasPage.tsx
+import { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import {
   IonPage,
@@ -11,11 +11,18 @@ import {
   IonTitle,
   IonText,
 } from "@ionic/react";
-import { chevronBack, settingsOutline, calendarOutline, bulbOutline } from "ionicons/icons";
+
+import { chevronBack, menuOutline, calendarOutline, bulbOutline } from "ionicons/icons";
+
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
+
 import Canvas from "./Canvas/Canvas";
 import type { TOOL } from "../constants/types";
+
+// NEW ActionBar:
+import Sidebar from "../components/Sidebar";
+import "../components/Sidebar.css";
 
 interface CanvasPageProps {
   tripName?: string;
@@ -24,17 +31,15 @@ interface CanvasPageProps {
 
 export default function CanvasPage(props: CanvasPageProps) {
   const [currentTool, setCurrentTool] = useState<TOOL>("DOODLE");
-
-  useEffect(() => {
-    menuController.enable(true, "canvas-tools-menu");
-    menuController.enable(true, "days-sidebar-menu");
-  }, []);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const params = useParams<{ id?: string }>();
-  const location = useLocation<{ trip?: { name?: string; lastEdited?: string } } | undefined>();
+  const location =
+    useLocation<{ trip?: { name?: string; lastEdited?: string } } | undefined>();
 
   const routeTrip = location.state?.trip;
   const tripId = params.id;
+
   const tripName =
     routeTrip?.name ??
     (props.tripName ? props.tripName : tripId ? `Trip Board ${tripId}` : "Trip Board");
@@ -47,27 +52,27 @@ export default function CanvasPage(props: CanvasPageProps) {
       ? rawLastEdited.toLocaleString()
       : new Date().toLocaleString();
 
-  const handleToolChange = (tool: TOOL) => {
-    setCurrentTool(tool);
-    menuController.close("canvas-tools-menu");
-  };
-
   return (
     <IonPage>
       <AppStatusBar />
 
-      <IonContent id="canvas-main-content" className="canvas-content">
-        <div className="canvas-area" />
-      </IonContent>
+      {/* Slide-In Sidebar */}
+      <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <Sidebar currentTool={currentTool} setCurrentTool={setCurrentTool} />
+      </div>
+      {isSidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+      )}
 
+      {/* Canvas Header */}
       <IonToolbar className="canvas-header">
         <IonButtons slot="start">
           <IonButton routerLink="/home">
             <IonIcon icon={chevronBack} />
           </IonButton>
 
-          <IonButton onClick={() => menuController.open("canvas-tools-menu")}>
-            <IonIcon icon={settingsOutline} />
+          <IonButton onClick={() => setIsSidebarOpen(true)}>
+            <IonIcon icon={menuOutline} />
           </IonButton>
         </IonButtons>
 
@@ -79,7 +84,7 @@ export default function CanvasPage(props: CanvasPageProps) {
         </IonTitle>
 
         <IonButtons slot="end">
-          <IonButton onClick={() => menuController.open("days-sidebar-menu")}>
+          <IonButton>
             <IonIcon icon={calendarOutline} />
           </IonButton>
 
@@ -89,7 +94,9 @@ export default function CanvasPage(props: CanvasPageProps) {
         </IonButtons>
       </IonToolbar>
 
-      <Canvas currentTool={currentTool} />
+      <IonContent className="canvas-content">
+        <Canvas currentTool={currentTool} />
+      </IonContent>
     </IonPage>
   );
 }

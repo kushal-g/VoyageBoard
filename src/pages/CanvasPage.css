@@ -1,113 +1,39 @@
+/* Canvas header spacing under the iPad status bar */
 .canvas-header {
-  padding: 8px 12px;
-  border-top: 1px solid #e6e6e6;
-  border-bottom: none;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
 }
 
+/* Center title block */
 .canvas-title-container {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .canvas-title-block {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
+  line-height: 1.2;
 }
 
 .canvas-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
-  margin: 0;
-  padding: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  color: #000;
 }
 
 .canvas-subtitle {
-  font-size: 11px;
-  color: #777;
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6c6c6c; /* secondary text color */
 }
 
+/* Canvas content area */
 .canvas-content {
-  --background: #ffffff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.canvas-area {
-  width: 92%;
-  height: 85%;
-  border-radius: 18px;
-  background: #fafafa;
-  border: 1px solid #ececec;
-}
-
-.sidebar-content {
-  padding: 28px;
-  font-size: 18px;
-  color: #444;
-}
-
-/* Menu sidebars styling for IonMenu (overlay) */
-ion-menu.menu-side-start,
-ion-menu[side="start"] {
-  --width: 360px;
-}
-
-ion-menu.menu-side-end,
-ion-menu[side="end"] {
-  --width: 360px;
-}
-
-/* The inner content of the menu gets the shadow and padding */
-ion-menu .menu-inner {
-  box-shadow: 2px 0 24px rgba(0,0,0,0.06);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* Keep the sidebar content with calm padding and readable type */
-.menu-inner .sidebar-content {
-  padding-top: 36px;
-}
-
-/* Floating Action Button styling */
-ion-fab {
-  margin: 16px;
-  z-index: 10000;
-  position: relative;
-}
-
-ion-fab-button {
-  --background: #ffffff;
-  --background-activated: #f0f0f0;
-  --background-hover: #f8f8f8;
-  --color: #333;
-  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  width: 48px;
-  height: 48px;
-  pointer-events: auto;
-}
-
-/* Tool selection styling */
-.tool-active {
-  --background: #e3f2fd;
-  --color: #007AFF;
-  font-weight: 600;
-}
-
-.tool-active ion-icon {
-  color: #007AFF;
+  --padding-top: 0;
+  background: #ffffff;
 }

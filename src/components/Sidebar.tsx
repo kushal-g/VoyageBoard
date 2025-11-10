@@ -1,96 +1,46 @@
-import { useState, type Dispatch, type SetStateAction } from 'react'
-import './Sidebar.css'
 import type { TOOL } from '../constants/types'
-import { tools } from '../constants/constants'
+import './Sidebar.css'
 
-interface SidebarProps {
-  currentTool: TOOL,
-  setCurrentTool: Dispatch<SetStateAction<TOOL>>
+type SidebarProps = {
+  currentTool?: TOOL
+  setCurrentTool?: (tool: TOOL) => void
 }
 
-/**
- * Sidebar Component
- * Uses Material Icons for consistent iOS-style iconography
- */
-function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
-  // State for search input value
-  const [searchQuery, setSearchQuery] = useState('')
-
-
-  /**
-   * Handles menu item click events
-   * Updates the selected state and can trigger tool activation
-   * 
-   * @param {string} itemId - The ID of the clicked menu item
-   */
-  const handleItemClick = (itemId: TOOL) => {
-    setCurrentTool(itemId)
-    // Here you would typically trigger the actual tool/feature
-    console.log(`Selected tool: ${itemId}`)
-  }
-
-  /**
-   * Handles search input changes
-   * 
-   * @param {React.ChangeEvent<HTMLInputElement>} e - Input change event
-   */
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value)
-    // Here you could implement search/filter functionality
-    console.log(`Search query: ${e.target.value}`)
-  }
-
+export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
   return (
-    <aside className="sidebar">
-      {/* 
-        Search Bar Section
-        iOS-style search input with magnifying glass icon
-      */}
+    <div className="sidebar">
       <div className="search-container">
         <div className="search-bar">
-          {/* Magnifying glass icon on the left - Material Icon */}
-          <span className="material-symbols-outlined search-icon">
-            search
-          </span>
-
-          {/* Search input field */}
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search"
-            value={searchQuery}
-            onChange={handleSearchChange}
-          />
+          <span className="search-icon">🔍</span>
+          <input className="search-input" placeholder="Search" />
         </div>
       </div>
 
-      {/* 
-        Menu Items Section
-        List of tool/feature options with icons and labels
-      */}
-      <nav className="sidebar-menu">
-        {tools.map((tool) => (
-          <button
-            key={tool.id}
-            className={`menu-item ${currentTool === tool.id ? 'selected' : ''}`}
-            onClick={() => handleItemClick(tool.id)}
-            aria-label={tool.label}
-          >
-            {/* Material Icon - uses icon name from menuItems config */}
-            <span
-              className="material-symbols-outlined menu-icon"
-              style={{ color: tool.color }}
-            >
-              {tool.icon}
-            </span>
+      <div className="sidebar-menu">
+        <button
+          className={`menu-item ${currentTool === 'DOODLE' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('DOODLE')}
+        >
+          <span className="menu-icon">✏️</span>
+          <span className="menu-label">Doodle</span>
+        </button>
 
-            {/* Menu item label text */}
-            <span className="menu-label">{tool.label}</span>
-          </button>
-        ))}
-      </nav>
-    </aside>
+        <button
+          className={`menu-item ${currentTool === 'ERASER' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('ERASER')}
+        >
+          <span className="menu-icon">🧽</span>
+          <span className="menu-label">Eraser</span>
+        </button>
+
+        <button
+          className={`menu-item ${currentTool === 'GROUP' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('GROUP')}
+        >
+          <span className="menu-icon">📚</span>
+          <span className="menu-label">Group Days</span>
+        </button>
+      </div>
+    </div>
   )
 }
-
-export default Sidebar

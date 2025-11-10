@@ -12,6 +12,17 @@
     pointer-events: auto;
 }
 
+.canvas-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
+}
+
 .eraser-cursor {
     position: fixed;
     border: 2px solid rgba(0, 0, 0, 0.5);
