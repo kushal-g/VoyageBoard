@@ -1,0 +1,38 @@
+.idea-content {
+  --background: #f7f7f9;
+  padding-bottom: 24px;
+}
+.subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 0 16px;
+}
+.muted {
+  color: #6c757d;
+  font-size: 14px;
+}
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.idea-grid {
+  padding: 16px;
+}
+.idea-col {
+  display: flex;
+  justify-content: center;
+}
+.add-popover {
+  min-width: 360px;
+  padding: 8px;
+}
+.hidden-file {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.btn-text {
+  margin-left: 6px;
+}
