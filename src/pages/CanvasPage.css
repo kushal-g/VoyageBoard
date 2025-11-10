@@ -1,6 +1,7 @@
 .canvas-header {
   padding: 8px 12px;
-  border-bottom: 1px solid #e6e6e6;
+  border-top: 1px solid #e6e6e6;
+  border-bottom: none;
 }
 
 .canvas-title-container {
@@ -80,4 +81,20 @@ ion-menu .menu-inner {
 /* Keep the sidebar content with calm padding and readable type */
 .menu-inner .sidebar-content {
   padding-top: 36px;
+}
+
+/* Floating Action Button styling */
+ion-fab {
+  margin: 16px;
+  z-index: 1000;
+}
+
+ion-fab-button {
+  --background: #ffffff;
+  --background-activated: #f0f0f0;
+  --background-hover: #f8f8f8;
+  --color: #333;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  width: 48px;
+  height: 48px;
 }

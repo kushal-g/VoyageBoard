@@ -123,6 +123,20 @@ export default function Canvas({ currentTool }: CanvasProps) {
 
     return (
         <div className="canvas-container">
+
+
+            <canvas
+                ref={canvasRef}
+                onMouseDown={(e) => activeTool?.onMouseDown(canvasRef, e, toolDeps)}
+                onMouseMove={(e) => activeTool?.onMouseMove(canvasRef, e, toolDeps)}
+                onMouseUp={(e) => activeTool?.onMouseUp(canvasRef, e, toolDeps)}
+                onMouseLeave={(e) => activeTool?.onMouseLeave(canvasRef, e, toolDeps)}
+                className="drawing-canvas"
+                style={{ cursor: activeTool?.cursor || 'crosshair' }}
+            />
+
+            {activeTool?.cursorElement}
+
             {activeTool?.toolbar && (
                 <div className="toolbar">
                     {activeTool.toolbar}
@@ -140,18 +154,6 @@ export default function Canvas({ currentTool }: CanvasProps) {
                     </div>
                 </div>
             )}
-
-            <canvas
-                ref={canvasRef}
-                onMouseDown={(e) => activeTool?.onMouseDown(canvasRef, e, toolDeps)}
-                onMouseMove={(e) => activeTool?.onMouseMove(canvasRef, e, toolDeps)}
-                onMouseUp={(e) => activeTool?.onMouseUp(canvasRef, e, toolDeps)}
-                onMouseLeave={(e) => activeTool?.onMouseLeave(canvasRef, e, toolDeps)}
-                className="drawing-canvas"
-                style={{ cursor: activeTool?.cursor || 'crosshair' }}
-            />
-
-            {activeTool?.cursorElement}
         </div>
     )
 }

@@ -12,10 +12,13 @@ import {
   IonTitle,
   IonText,
   IonMenu,
+  IonFab,
+  IonFabButton,
 } from "@ionic/react";
-import { chevronBack, settingsOutline, calendarOutline, bulbOutline } from "ionicons/icons";
+import { chevronBack, settingsOutline, calendarOutline, bulbOutline, menuOutline } from "ionicons/icons";
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
+import Canvas from "./Canvas/Canvas";
 
 interface CanvasPageProps {
   tripName?: string;
@@ -48,9 +51,17 @@ export default function CanvasPage({
     <IonPage>
       <AppStatusBar />
 
-      <IonHeader collapse="condense">
+      <IonContent id="canvas-main-content" className="canvas-content">
+        <div className="canvas-area" />
 
-      </IonHeader>
+        {/* Floating Action Button to open left sidebar */}
+        <IonFab vertical="bottom" horizontal="start" slot="fixed">
+          <IonFabButton onClick={() => menuController.open('canvas-tools-menu')}>
+            <IonIcon icon={menuOutline} />
+          </IonFabButton>
+        </IonFab>
+      </IonContent>
+
       <IonToolbar className="canvas-header">
 
         <IonButtons slot="start">
@@ -81,10 +92,6 @@ export default function CanvasPage({
         </IonButtons>
 
       </IonToolbar>
-
-      <IonContent id="canvas-main-content" className="canvas-content">
-        <div className="canvas-area" />
-      </IonContent>
       {/* Left Sidebar: Canvas Tools (IonMenu overlay) */}
       <IonMenu side="start" type="overlay" contentId="canvas-main-content" menuId="canvas-tools-menu">
         <IonHeader>
@@ -97,6 +104,8 @@ export default function CanvasPage({
           <h2>TODO: Canvas Actions Menu</h2>
         </IonContent>
       </IonMenu>
+
+      <Canvas currentTool="DOODLE" />
 
       {/* Right Sidebar: Days List (IonMenu overlay) */}
       <IonMenu side="end" type="overlay" contentId="canvas-main-content" menuId="days-sidebar-menu">
