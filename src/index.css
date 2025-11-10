@@ -66,3 +66,5 @@ h3 {
   font-size: 16px;
   color: #000000;
 }
+
+ion-menu{z-index:2147483647!important}

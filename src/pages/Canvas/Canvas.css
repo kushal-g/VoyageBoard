@@ -3,7 +3,6 @@
     height: 100vh;
     position: relative;
     overflow: hidden;
-    pointer-events: none;
 }
 
 .drawing-canvas {
@@ -18,7 +17,7 @@
     border: 2px solid rgba(0, 0, 0, 0.5);
     border-radius: 50%;
     pointer-events: none;
-    z-index: 9999;
+    z-index: 100;
     background: rgba(255, 255, 255, 0.3);
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
@@ -36,7 +35,7 @@
     display: flex;
     gap: 30px;
     align-items: center;
-    z-index: 1000;
+    z-index: 100;
     border: 1px solid rgba(0, 0, 0, 0.1);
     pointer-events: auto;
 }
