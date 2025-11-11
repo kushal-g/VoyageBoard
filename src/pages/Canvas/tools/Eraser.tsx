@@ -20,6 +20,7 @@ export const useEraserTool = (): CanvasTool => {
         if (!canvas) return { x: 0, y: 0 }
 
         const rect = canvas.getBoundingClientRect()
+
         return {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
@@ -39,7 +40,8 @@ export const useEraserTool = (): CanvasTool => {
 
         const { x, y } = getCoordinates(canvasRef, e)
 
-        ctx.globalCompositeOperation = 'destination-out'
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = eraserSize
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
@@ -71,19 +73,11 @@ export const useEraserTool = (): CanvasTool => {
     }
 
     const onMouseUp = (
-        canvasRef: React.RefObject<HTMLCanvasElement | null>,
+        _canvasRef: React.RefObject<HTMLCanvasElement | null>,
         _e: React.MouseEvent<HTMLCanvasElement>,
         deps: Record<string, any>
     ) => {
         if (isErasingRef.current) {
-            const canvas = canvasRef.current
-            if (canvas) {
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                    // Reset composite operation back to normal
-                    ctx.globalCompositeOperation = 'source-over'
-                }
-            }
             isErasingRef.current = false
             // Call saveToHistory if provided in deps
             if (deps.saveToHistory) {
@@ -99,14 +93,6 @@ export const useEraserTool = (): CanvasTool => {
     ) => {
         setIsVisible(false)
         if (isErasingRef.current) {
-            const canvas = _canvasRef.current
-            if (canvas) {
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                    // Reset composite operation back to normal
-                    ctx.globalCompositeOperation = 'source-over'
-                }
-            }
             isErasingRef.current = false
             // Call saveToHistory if provided in deps
             if (deps.saveToHistory) {

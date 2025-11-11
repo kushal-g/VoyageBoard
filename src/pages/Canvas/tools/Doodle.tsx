@@ -19,6 +19,7 @@ export const useDoodleTool = (): CanvasTool => {
         if (!canvas) return { x: 0, y: 0 }
 
         const rect = canvas.getBoundingClientRect()
+
         return {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top

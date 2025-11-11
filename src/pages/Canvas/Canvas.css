@@ -1,12 +1,14 @@
 .canvas-container {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     position: relative;
     overflow: hidden;
 }
 
 .drawing-canvas {
     display: block;
+    width: 100%;
+    height: 100%;
     cursor: crosshair;
     touch-action: none;
     pointer-events: auto;

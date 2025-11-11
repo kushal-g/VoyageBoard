@@ -3,6 +3,7 @@ import './Canvas.css'
 import type { TOOL } from '../../constants/types'
 import { useDoodleTool } from './tools/Doodle'
 import { useEraserTool } from './tools/Eraser'
+import { useLocationTool } from './tools/Location'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -16,11 +17,13 @@ export default function Canvas({ currentTool }: CanvasProps) {
     // Tool instances
     const doodleTool = useDoodleTool()
     const eraserTool = useEraserTool()
+    const locationTool = useLocationTool()
 
     // Map of tools
     const tools = {
         DOODLE: doodleTool,
         ERASER: eraserTool,
+        LOCATION_PIN: locationTool,
         // Add more tools here as they are implemented
     }
 
@@ -34,29 +37,51 @@ export default function Canvas({ currentTool }: CanvasProps) {
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
-        // Set canvas size to window size
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        let initialized = false
 
-        // Fill with white background
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        const resizeCanvas = (width: number, height: number, saveState = false) => {
+            if (width <= 0 || height <= 0) return
+            if (width === canvas.width && height === canvas.height) return
 
-        // Save initial state
-        saveToHistory()
+            let imageData: ImageData | null = null
+            if (saveState && canvas.width > 0 && canvas.height > 0) {
+                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+            }
 
-        // Handle window resize
-        const handleResize = () => {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
+            canvas.width = width
+            canvas.height = height
+
+            // Fill with white background
             ctx.fillStyle = '#ffffff'
             ctx.fillRect(0, 0, canvas.width, canvas.height)
-            ctx.putImageData(imageData, 0, 0)
+
+            if (imageData) {
+                ctx.putImageData(imageData, 0, 0)
+            }
+
+            // Save initial state only once
+            if (!initialized && !imageData) {
+                initialized = true
+                saveToHistory()
+            }
         }
 
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
+        // Use ResizeObserver to watch container size changes
+        const container = canvas.parentElement
+        if (container) {
+            const resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const { width, height } = entry.contentRect
+                    resizeCanvas(width, height, initialized)
+                }
+            })
+
+            resizeObserver.observe(container)
+
+            return () => {
+                resizeObserver.disconnect()
+            }
+        }
     }, [])
 
     const saveToHistory = () => {

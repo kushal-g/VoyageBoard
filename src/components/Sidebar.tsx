@@ -34,6 +34,14 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
         </button>
 
         <button
+          className={`menu-item ${currentTool === 'LOCATION_PIN' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('LOCATION_PIN')}
+        >
+          <span className="menu-icon">📍</span>
+          <span className="menu-label">Location Pin</span>
+        </button>
+
+        <button
           className={`menu-item ${currentTool === 'GROUP' ? 'selected' : ''}`}
           onClick={() => setCurrentTool && setCurrentTool('GROUP')}
         >
