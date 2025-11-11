@@ -4,26 +4,37 @@ import type { TOOL } from '../../constants/types'
 import { useDoodleTool } from './tools/Doodle'
 import { useEraserTool } from './tools/Eraser'
 import { useLocationTool } from './tools/Location'
+import { useTransitTool } from './tools/Transit'
 
 interface CanvasProps {
     currentTool: TOOL
+}
+
+export interface LocationPin {
+    x: number
+    y: number
+    id: number
+    location: string
 }
 
 export default function Canvas({ currentTool }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [history, setHistory] = useState<ImageData[]>([])
     const [historyStep, setHistoryStep] = useState(-1)
+    const [pins, setPins] = useState<LocationPin[]>([])
 
     // Tool instances
     const doodleTool = useDoodleTool()
     const eraserTool = useEraserTool()
-    const locationTool = useLocationTool()
+    const locationTool = useLocationTool(pins, setPins)
+    const transitTool = useTransitTool(pins)
 
     // Map of tools
     const tools = {
         DOODLE: doodleTool,
         ERASER: eraserTool,
         LOCATION_PIN: locationTool,
+        TRANSIT: transitTool,
         // Add more tools here as they are implemented
     }
 
