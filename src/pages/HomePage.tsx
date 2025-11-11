@@ -1,5 +1,5 @@
 import { IonPage, IonContent, IonIcon, IonCard, IonButton, IonActionSheet } from '@ionic/react'
-import { calendarClearOutline, add, ellipsisVertical, trash, shareSocial, image } from 'ionicons/icons'
+import { calendarClearOutline, add, ellipsisVertical, trash, shareSocial, image, pencil } from 'ionicons/icons'
 import { useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import AppStatusBar from '../components/AppStatusBar'
@@ -33,17 +33,13 @@ const HomePage = () => {
   }
 
   const openBoardActions = (trip: TripBoard) => {
-    openActionSheet(trip.id)
+    setActiveBoardId(trip.id)
+    setActionSheetOpen(true)
   }
 
   const formatDate = (d?: Date) => {
     if (!d) return ''
     return new Date(d).toLocaleDateString()
-  }
-
-  const openActionSheet = (boardId: string) => {
-    setActiveBoardId(boardId)
-    setActionSheetOpen(true)
   }
 
   const closeActionSheet = () => {
@@ -57,10 +53,30 @@ const HomePage = () => {
     closeActionSheet()
   }
 
+  const handleRename = () => {
+    const board = tripBoards.find((b) => b.id === activeBoardId)
+    if (!board) return
+
+    const newName = window.prompt("Enter a new name:", board.name)
+    if (!newName) return closeActionSheet()
+
+    setTripBoards((prev) =>
+      prev.map((b) =>
+        b.id === activeBoardId ? { ...b, name: newName } : b
+      )
+    )
+    closeActionSheet()
+  }
+
   const handleShare = async () => {
     const board = tripBoards.find((b) => b.id === activeBoardId)
     if (!board) return
-    const shareData = { title: board.name, text: `Check out my tripboard: ${board.name}` }
+
+    const shareData = {
+      title: board.name,
+      text: `Check out my tripboard: ${board.name}`
+    }
+
     if ((navigator as any).share) {
       try {
         await (navigator as any).share(shareData)
@@ -68,19 +84,22 @@ const HomePage = () => {
         console.warn('Share cancelled', err)
       }
     } else {
-      alert('Share not supported in this browser')
+      alert('Sharing is not supported on this device.')
     }
     closeActionSheet()
   }
 
   const handleChangeCover = () => {
     const url = window.prompt('Enter image URL for cover:')
-    if (!url || !activeBoardId) { closeActionSheet(); return }
-    setTripBoards((prev) => prev.map((b) => (b.id === activeBoardId ? { ...b, image: url } : b)))
+    if (!url || !activeBoardId) return closeActionSheet()
+
+    setTripBoards((prev) =>
+      prev.map((b) =>
+        b.id === activeBoardId ? { ...b, coverImage: url } : b
+      )
+    )
     closeActionSheet()
   }
-
-
 
   return (
     <IonPage>
@@ -98,6 +117,7 @@ const HomePage = () => {
               <IonIcon icon={add} slot="end" />
             </IonButton>
           </div>
+
           {tripBoards.length === 0 ? (
             <div className="empty-state">
               <IonIcon icon={calendarClearOutline} className="empty-icon" />
@@ -120,12 +140,14 @@ const HomePage = () => {
                   </div>
                 </IonCard>
               ))}
+
               <IonActionSheet
                 isOpen={actionSheetOpen}
                 onDidDismiss={closeActionSheet}
                 buttons={[
                   { text: 'Delete canvas', role: 'destructive', icon: trash, handler: handleDelete },
                   { text: 'Share trip', icon: shareSocial, handler: handleShare },
+                  { text: 'Rename TripBoard', icon: pencil, handler: handleRename },
                   { text: 'Change cover image', icon: image, handler: handleChangeCover },
                   { text: 'Cancel', role: 'cancel' },
                 ]}
@@ -139,4 +161,3 @@ const HomePage = () => {
 }
 
 export default HomePage
-
