@@ -43,6 +43,7 @@ function App() {
           <Route path="/home" component={HomePage} exact />
           <Route path="/canvas/:id" component={CanvasPage} exact />
           <Route path="/idea-dump" component={IdeaDumpPage} exact />
+
           <Redirect exact from="/" to="/starting" />
         </IonRouterOutlet>
       </IonReactRouter>

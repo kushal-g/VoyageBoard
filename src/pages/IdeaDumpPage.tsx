@@ -1,107 +1,142 @@
 import { useMemo, useState } from 'react'
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonTitle, IonContent, IonText, IonPopover, IonList, IonItem, IonInput, IonLabel, IonBadge, IonGrid, IonRow, IonCol } from '@ionic/react'
-import { chevronBack, add, funnelOutline, sparklesOutline, globeOutline, cloudUploadOutline, linkOutline } from 'ionicons/icons'
-import AppStatusBar from '../components/AppStatusBar'
-import IdeaCard from '../components/IdeaCard'
-import type { Idea, IdeaPlatform } from '../constants/ideaTypes'
+import {
+  IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonContent,
+  IonTitle, IonText, IonPopover, IonList, IonItem, IonLabel, IonInput
+} from '@ionic/react'
+import { chevronBack, linkOutline, cloudUploadOutline, playCircle } from 'ionicons/icons'
 import './IdeaDumpPage.css'
 
-const thumb = 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop'
+type Platform = 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'upload'
+type Status = 'ready' | 'unprocessed'
 
-function parsePlatform(u: string): IdeaPlatform {
+type Idea = {
+  id: string
+  title: string
+  platform: Platform
+  thumb?: string
+  status: Status
+}
+
+const thumbs = {
+  gateway: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=1600&auto=format&fit=crop',
+  juhu: 'https://images.unsplash.com/photo-1548013146-e7c9e5b2d7b8?q=80&w=1600&auto=format&fit=crop',
+  iskcon: 'https://images.unsplash.com/photo-1610438592283-5fbcf0c4b9f9?q=80&w=1600&auto=format&fit=crop',
+  lalbagh: 'https://images.unsplash.com/photo-1610201315927-9b8a7d4b4f6b?q=80&w=1600&auto=format&fit=crop',
+  taj: 'https://images.unsplash.com/photo-1549893079-842e6d40842a?q=80&w=1600&auto=format&fit=crop'
+}
+
+function platformFromUrl(u: string): Platform {
   try {
     const h = new URL(u).hostname.replace('www.','')
-    if (h.includes('youtube.com') || h.includes('youtu.be')) return 'youtube'
-    if (h.includes('tiktok.com')) return 'tiktok'
-    if (h.includes('instagram.com')) return 'instagram'
-    if (h.includes('facebook.com')) return 'facebook'
+    if (h.includes('tiktok')) return 'tiktok'
+    if (h.includes('instagram')) return 'instagram'
+    if (h.includes('facebook')) return 'facebook'
+    if (h.includes('youtube') || h.includes('youtu.be')) return 'youtube'
   } catch {}
   return 'upload'
 }
 
 export default function IdeaDumpPage() {
-  const [items, setItems] = useState<Idea[]>([])
-  const [linkOpen, setLinkOpen] = useState(false)
+  const [items, setItems] = useState<Idea[]>([
+    { id: '1', title: 'Gateway of India', platform: 'tiktok', thumb: thumbs.gateway, status: 'ready' },
+    { id: '2', title: 'Juhu Beach', platform: 'instagram', thumb: thumbs.juhu, status: 'ready' },
+    { id: '3', title: 'ISKCON - Bangalore', platform: 'upload', thumb: thumbs.iskcon, status: 'ready' },
+    { id: '4', title: 'Lalbagh Botanical Garden', platform: 'tiktok', thumb: thumbs.lalbagh, status: 'ready' },
+    { id: '5', title: 'Taj Hotel', platform: 'facebook', thumb: thumbs.taj, status: 'ready' }
+  ])
+  const [tripTitle] = useState('Idea Dump - Road Trip')
   const [linkValue, setLinkValue] = useState('')
-  const [filter, setFilter] = useState<'all' | IdeaPlatform | 'unprocessed' | 'processing'>('all')
+  const count = useMemo(() => items.length, [items])
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return items
-    if (filter === 'unprocessed' || filter === 'processing') return items.filter(i => i.status === filter)
-    return items.filter(i => i.platform === filter)
-  }, [items, filter])
-
-  function addLink(url: string) {
-    const p = parsePlatform(url)
+  function addFromLink() {
+    const url = linkValue.trim()
+    if (!url) return
+    const p = platformFromUrl(url)
     const id = Math.random().toString(36).slice(2)
-    const title = p === 'upload' ? 'Uploaded Media' : url.split('/').slice(-1)[0] || p
-    const it: Idea = { id, url, platform: p, title, thumbnailUrl: thumb, createdAt: new Date().toISOString(), status: 'unprocessed' }
-    setItems(prev => [it, ...prev])
+    setItems(prev => [{ id, title: 'Unprocessed', platform: p, status: 'unprocessed' }, ...prev])
+    setLinkValue('')
+  }
+
+  function onFileUpload(files: FileList | null) {
+    if (!files || !files[0]) return
+    const f = files[0]
+    const id = Math.random().toString(36).slice(2)
+    setItems(prev => [{ id, title: f.name || 'Upload', platform: 'upload', status: 'unprocessed' }, ...prev])
   }
 
   return (
     <IonPage>
-      <AppStatusBar />
-      <IonHeader>
+      <IonHeader className="canvas-header">
         <IonToolbar>
           <IonButtons slot="start">
             <IonButton routerLink="/home">
               <IonIcon icon={chevronBack} />
             </IonButton>
           </IonButtons>
-          <IonTitle>Idea Dump</IonTitle>
+
+          <IonTitle className="canvas-title-container">
+            <div className="canvas-title-block">
+              <div className="canvas-title">{tripTitle}</div>
+              <IonText className="canvas-subtitle">{count} Items</IonText>
+            </div>
+          </IonTitle>
+
           <IonButtons slot="end">
-            <IonButton id="process-btn">
-              <IonIcon icon={sparklesOutline} />
-              <IonText className="btn-text">Process Ideas</IonText>
-            </IonButton>
-            <IonButton id="add-btn">
-              <IonIcon icon={add} />
+            <IonButton id="process-trigger" className="process-pill">
+              <span>Process Ideas</span>
             </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="idea-content">
-        <div className="subheader">
-          <IonText className="muted">{items.length} Items</IonText>
-          <div className="filters">
-            <IonButton fill={filter==='all'?'solid':'outline'} size="small" onClick={()=>setFilter('all')}>All</IonButton>
-            <IonButton fill={filter==='tiktok'?'solid':'outline'} size="small" onClick={()=>setFilter('tiktok')}>TikTok</IonButton>
-            <IonButton fill={filter==='youtube'?'solid':'outline'} size="small" onClick={()=>setFilter('youtube')}>YouTube</IonButton>
-            <IonButton fill={filter==='instagram'?'solid':'outline'} size="small" onClick={()=>setFilter('instagram')}>Instagram</IonButton>
-            <IonButton fill={filter==='facebook'?'solid':'outline'} size="small" onClick={()=>setFilter('facebook')}>Facebook</IonButton>
-            <IonButton fill={filter==='unprocessed'?'solid':'outline'} size="small" onClick={()=>setFilter('unprocessed')}>Unprocessed</IonButton>
-          </div>
+      <IonContent className="canvas-content">
+        <div className="id-grid">
+          {items.map(card => (
+            <div key={card.id} className="id-card">
+              {card.status === 'ready' && (
+                <>
+                  <div className="id-thumb" style={{ backgroundImage: `url(${card.thumb})` }} />
+                  <div className="id-gradient" />
+                  <div className="id-meta">
+                    <div className="id-title-text">{card.title}</div>
+                    <div className="id-platform">{card.platform.charAt(0).toUpperCase() + card.platform.slice(1)}</div>
+                  </div>
+                </>
+              )}
+              {card.status === 'unprocessed' && (
+                <div className="id-unprocessed">
+                  <IonIcon icon={playCircle} className="id-play" />
+                  <div className="id-meta">
+                    <div className="id-title-text">Unprocessed</div>
+                    <div className="id-platform">{card.platform.charAt(0).toUpperCase() + card.platform.slice(1)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
 
-        <IonGrid className="idea-grid">
-          <IonRow>
-            {filtered.map(i=>(
-              <IonCol key={i.id} size="12" sizeMd="6" sizeLg="4" className="idea-col">
-                <IdeaCard idea={i} />
-              </IonCol>
-            ))}
-          </IonRow>
-        </IonGrid>
-      </IonContent>
+        <IonPopover trigger="process-trigger" triggerAction="click" className="id-pop">
+          <div className="id-pop-inner">
+            <div className="id-input">
+              <IonIcon icon={linkOutline} />
+              <IonInput
+                placeholder="Insert Link"
+                value={linkValue}
+                onIonChange={(e) => setLinkValue(e.detail.value || '')}
+              />
+              <IonButton onClick={addFromLink}>Add</IonButton>
+            </div>
 
-      <IonPopover trigger="add-btn" triggerAction="click">
-        <div className="add-popover">
-          <IonList>
-            <IonItem lines="none">
-              <IonIcon icon={linkOutline} slot="start" />
-              <IonInput placeholder="Insert Link" value={linkValue} onIonChange={e=>setLinkValue(e.detail.value || '')} />
-              <IonButton onClick={()=>{ if(linkValue.trim()) { addLink(linkValue.trim()); setLinkValue(''); setLinkOpen(false) }}}>Add</IonButton>
-            </IonItem>
-            <IonItem lines="none">
-              <IonIcon icon={cloudUploadOutline} slot="start" />
+            <label className="id-upload">
+              <IonIcon icon={cloudUploadOutline} />
               <IonLabel>Upload File</IonLabel>
-              <input type="file" accept="image/*,video/*" className="hidden-file" onChange={(e)=>{ const f=e.target.files?.[0]; if(f){ const id=Math.random().toString(36).slice(2); const it: Idea={ id, platform:'upload', title:f.name, thumbnailUrl:thumb, createdAt:new Date().toISOString(), status:'unprocessed' }; setItems(prev=>[it,...prev]); e.currentTarget.value='' }}} />
-            </IonItem>
-          </IonList>
-        </div>
-      </IonPopover>
+              <span>Image / Video</span>
+              <input type="file" accept="image/*,video/*" onChange={(e) => onFileUpload(e.target.files)} />
+            </label>
+          </div>
+        </IonPopover>
+      </IonContent>
     </IonPage>
   )
 }
