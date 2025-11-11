@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonContent,
   IonTitle, IonText, IonPopover, IonList, IonItem, IonLabel, IonInput
 } from '@ionic/react'
-import { chevronBack, linkOutline, cloudUploadOutline, playCircle } from 'ionicons/icons'
+import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add } from 'ionicons/icons'
 import './IdeaDumpPage.css'
 
 type Platform = 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'upload'
@@ -81,9 +81,12 @@ export default function IdeaDumpPage() {
             </div>
           </IonTitle>
 
-          <IonButtons slot="end">
+          <IonButtons slot="end" className="right-actions">
             <IonButton id="process-trigger" className="process-pill">
               <span>Process Ideas</span>
+            </IonButton>
+            <IonButton id="add-trigger" className="circle-btn">
+              <IonIcon icon={add} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -116,7 +119,7 @@ export default function IdeaDumpPage() {
           ))}
         </div>
 
-        <IonPopover trigger="process-trigger" triggerAction="click" className="id-pop">
+        <IonPopover trigger="add-trigger" triggerAction="click" className="id-pop">
           <div className="id-pop-inner">
             <div className="id-input">
               <IonIcon icon={linkOutline} />
@@ -134,6 +137,16 @@ export default function IdeaDumpPage() {
               <span>Image / Video</span>
               <input type="file" accept="image/*,video/*" onChange={(e) => onFileUpload(e.target.files)} />
             </label>
+          </div>
+        </IonPopover>
+
+        <IonPopover trigger="process-trigger" triggerAction="click" className="id-pop small">
+          <div className="id-pop-inner mini">
+            <IonList>
+              <IonItem lines="none">
+                <IonLabel>Processing coming soon</IonLabel>
+              </IonItem>
+            </IonList>
           </div>
         </IonPopover>
       </IonContent>
