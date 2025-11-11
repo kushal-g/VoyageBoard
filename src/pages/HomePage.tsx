@@ -23,10 +23,10 @@ const HomePage = () => {
   const createNewTripboard = () => {
     const newBoard: TripBoard = {
       id: Date.now().toString(),
-      name: `Trip Board ${tripBoards.length + 1}`,
+      name: `Canvas ${tripBoards.length + 1}`,
       createdAt: new Date(),
       coverImage: 'https://ionicframework.com/docs/img/demos/card-media.png',
-      subtitle: 'Trip Board',
+      subtitle: 'Canvas',
       lastEdited: new Date(),
     }
     setTripBoards([...tripBoards, newBoard])
@@ -145,10 +145,10 @@ const HomePage = () => {
                 isOpen={actionSheetOpen}
                 onDidDismiss={closeActionSheet}
                 buttons={[
-                  { text: 'Delete canvas', role: 'destructive', icon: trash, handler: handleDelete },
-                  { text: 'Share trip', icon: shareSocial, handler: handleShare },
-                  { text: 'Rename TripBoard', icon: pencil, handler: handleRename },
-                  { text: 'Change cover image', icon: image, handler: handleChangeCover },
+                  { text: 'Delete Canvas', role: 'destructive', icon: trash, handler: handleDelete },
+                  { text: 'Share Canvas', icon: shareSocial, handler: handleShare },
+                  { text: 'Rename Canvas', icon: pencil, handler: handleRename },
+                  { text: 'Change Cover Image', icon: image, handler: handleChangeCover },
                   { text: 'Cancel', role: 'cancel' },
                 ]}
               />
