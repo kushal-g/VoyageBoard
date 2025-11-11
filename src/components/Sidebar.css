@@ -1,12 +1,5 @@
 /**
  * Sidebar Component Styles
- * 
- * iOS-inspired design with:
- * - Light theme background
- * - Subtle shadows for depth
- * - Rounded corners
- * - Smooth transitions and hover effects
- * - Modern typography and spacing
  */
 
 /* Main sidebar container */
@@ -33,6 +26,33 @@
   
   /* Ensure sidebar stays above other content */
   z-index: 1000;
+}
+
+/* Force visible foreground colors inside the sidebar to avoid inheritance issues */
+.sidebar * {
+  color: #111 !important;
+}
+
+/* Hide by default (slide out to the left) */
+.sidebar {
+  transition: transform 0.28s ease;
+}
+
+/* Open state */
+.sidebar.open {
+  transform: translateX(0);
+}
+
+/* Backdrop overlay when sidebar is open */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.12);
+  backdrop-filter: blur(2px);
+  z-index: 900;
 }
 
 /* Search Container Section */
@@ -69,15 +89,15 @@
   border-color: #007aff; /* iOS blue accent */
 }
 
-/* Magnifying glass icon - Material Icon styling */
+/* Magnifying glass icon */
 .search-icon {
   font-size: 20px;
   width: 20px;
   height: 20px;
   margin-right: 8px;
   opacity: 0.6;
-  color: #8e8e93; /* iOS gray color */
-  flex-shrink: 0; /* Prevent icon from shrinking */
+  color: #8e8e93;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,10 +130,10 @@
   /* Flexbox for vertical menu layout */
   display: flex;
   flex-direction: column;
-  
+
   /* Padding for menu items */
-  padding: 8px 16px;
-  
+  padding: 8px 0 8px 0;
+
   /* Gap between items */
   gap: 4px;
 }
@@ -145,6 +165,12 @@
   
   /* Full width */
   width: 100%;
+}
+
+/* Make labels and icons visible and aligned */
+.menu-label {
+  display: inline-block;
+  color: #111;
 }
 
 /* Hover effect - subtle background highlight */
@@ -180,6 +206,53 @@
   /* Icon sizing - Material Icons */
   font-size: 24px;
   flex-shrink: 0;
+}
+
+/* Ensure Ionic ion-icon SVGs are visible and correctly sized */
+.menu-item ion-icon,
+.menu-item .menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  color: #333333; /* icon color */
+}
+
+.menu-item ion-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* Ionic list/item specific styling so IonItem looks like our menu items */
+.sidebar ion-list {
+  padding: 0 8px;
+}
+
+.sidebar ion-item {
+  --background: transparent;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --inner-padding-end: 12px;
+  border-radius: 14px;
+  margin: 4px 12px;
+}
+
+.sidebar ion-item[selected],
+.sidebar ion-item.selected {
+  background-color: #e8f4fd;
+}
+
+.sidebar ion-item .label {
+  font-size: 16px;
+  color: #333333;
+}
+
+.sidebar ion-icon {
+  color: #333333;
+  font-size: 20px;
 }
 
 /* Menu Label Text */

@@ -20,7 +20,7 @@ import "./CanvasPage.css";
 import Canvas from "./Canvas/Canvas";
 import type { TOOL } from "../constants/types";
 
-// NEW ActionBar:
+// Sidebar Component
 import Sidebar from "../components/Sidebar";
 import "../components/Sidebar.css";
 
@@ -71,7 +71,7 @@ export default function CanvasPage(props: CanvasPageProps) {
             <IonIcon icon={chevronBack} />
           </IonButton>
 
-          <IonButton onClick={() => setIsSidebarOpen(true)}>
+          <IonButton onClick={() => setIsSidebarOpen((prev) => !prev)}>
             <IonIcon icon={menuOutline} />
           </IonButton>
         </IonButtons>

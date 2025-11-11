@@ -1,4 +1,5 @@
 import { IonApp, IonRouterOutlet, IonMenu, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem } from '@ionic/react'
+import IdeaDumpPage from './pages/IdeaDumpPage'
 import { IonReactRouter } from '@ionic/react-router'
 import { Route, Redirect } from 'react-router-dom'
 import StartingPage from './pages/StartingPage'
@@ -41,6 +42,8 @@ function App() {
           <Route path="/starting" component={StartingPage} exact />
           <Route path="/home" component={HomePage} exact />
           <Route path="/canvas/:id" component={CanvasPage} exact />
+          <Route path="/idea-dump" component={IdeaDumpPage} exact />
+
           <Redirect exact from="/" to="/starting" />
         </IonRouterOutlet>
       </IonReactRouter>
