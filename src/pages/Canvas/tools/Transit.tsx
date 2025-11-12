@@ -24,7 +24,7 @@ interface TransitLine {
 }
 
 export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
-    const [lines, setLines] = useState<TransitLine[]>([])
+    const [_lines, _setLines] = useState<TransitLine[]>([])
     const [lineColor, setLineColor] = useState('#000000')
     const [lineWidth, setLineWidth] = useState(3)
     const [startPoint, setStartPoint] = useState<Point | null>(null)
@@ -624,7 +624,7 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
                 transitOptions: transitOpts,
                 selectedOptionIndex: selectedTransitIndex
             }
-            setLines(prev => [...prev, newLine])
+            _setLines((prev: TransitLine[]) => [...prev, newLine])
 
             // Save to history
             if (deps.saveToHistory) {

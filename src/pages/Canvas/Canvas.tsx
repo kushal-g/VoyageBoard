@@ -5,6 +5,7 @@ import { useDoodleTool } from './tools/Doodle'
 import { useEraserTool } from './tools/Eraser'
 import { useLocationTool } from './tools/Location'
 import { useTransitTool } from './tools/Transit'
+import { useGroupLocationTool } from './tools/GroupLocation'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -28,6 +29,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
     const eraserTool = useEraserTool()
     const locationTool = useLocationTool(pins, setPins)
     const transitTool = useTransitTool(pins)
+    const groupLocationTool = useGroupLocationTool(pins, setPins)
 
     // Map of tools
     const tools = {
@@ -35,6 +37,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
         ERASER: eraserTool,
         LOCATION_PIN: locationTool,
         TRANSIT: transitTool,
+        GROUP: groupLocationTool,
         // Add more tools here as they are implemented
     }
 
