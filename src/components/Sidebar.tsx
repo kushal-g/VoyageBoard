@@ -1,12 +1,13 @@
 import type { TOOL } from '../constants/types'
 import './Sidebar.css'
-import { IonIcon, IonList, IonItem, IonLabel, IonSearchbar } from '@ionic/react'
+import { IonIcon } from '@ionic/react'
 import {
   locationOutline,
-  analyticsOutline,
+  mapOutline,
   createOutline,
-  trashOutline,
-  albumsOutline,
+  layersOutline,
+  searchOutline,
+  brushOutline,
 } from 'ionicons/icons'
 
 type SidebarProps = {
@@ -19,7 +20,7 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
     <div className="sidebar">
       <div className="search-container">
         <div className="search-bar">
-          <span className="search-icon">🔍</span>
+          <IonIcon icon={searchOutline} className="search-icon" />
           <input className="search-input" placeholder="Search" />
         </div>
       </div>
@@ -30,7 +31,7 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
           onClick={() => setCurrentTool && setCurrentTool('LOCATION_PIN')}
           aria-label="Add Location"
         >
-          <span className="menu-icon">📍</span>
+          <IonIcon icon={locationOutline} className="menu-icon" />
           <span className="menu-label">Add Location</span>
         </button>
 
@@ -39,8 +40,8 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
           onClick={() => setCurrentTool && setCurrentTool('TRANSIT')}
           aria-label="Distance Measure"
         >
-          <span className="menu-icon">📏</span>
-          <span className="menu-label">Distance Measure</span>
+          <IonIcon icon={mapOutline} className="menu-icon" />
+          <span className="menu-label">Transit</span>
         </button>
 
         <button
@@ -48,7 +49,7 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
           onClick={() => setCurrentTool && setCurrentTool('DOODLE')}
           aria-label="Doodle"
         >
-          <span className="menu-icon">✏️</span>
+          <IonIcon icon={createOutline} className="menu-icon" />
           <span className="menu-label">Doodle</span>
         </button>
 
@@ -57,16 +58,8 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
           onClick={() => setCurrentTool && setCurrentTool('ERASER')}
           aria-label="Eraser"
         >
-          <span className="menu-icon">🧽</span>
+          <IonIcon icon={brushOutline} className="menu-icon" />
           <span className="menu-label">Eraser</span>
-        </button>
-
-        <button
-          className={`menu-item ${currentTool === 'LOCATION_PIN' ? 'selected' : ''}`}
-          onClick={() => setCurrentTool && setCurrentTool('LOCATION_PIN')}
-        >
-          <span className="menu-icon">📍</span>
-          <span className="menu-label">Location Pin</span>
         </button>
 
         <button
@@ -74,8 +67,8 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
           onClick={() => setCurrentTool && setCurrentTool('GROUP')}
           aria-label="Group Days"
         >
-          <span className="menu-icon">📚</span>
-          <span className="menu-label">Group Days</span>
+          <IonIcon icon={layersOutline} className="menu-icon" />
+          <span className="menu-label">Group Locations</span>
         </button>
       </div>
     </div>

@@ -52,22 +52,51 @@ export default function Canvas({ currentTool }: CanvasProps) {
 
         const resizeCanvas = (width: number, height: number, saveState = false) => {
             if (width <= 0 || height <= 0) return
-            if (width === canvas.width && height === canvas.height) return
+
+            // Get device pixel ratio for high-DPI displays
+            const dpr = window.devicePixelRatio || 1
+            const scaledWidth = Math.floor(width * dpr)
+            const scaledHeight = Math.floor(height * dpr)
+
+            if (scaledWidth === canvas.width && scaledHeight === canvas.height) return
 
             let imageData: ImageData | null = null
+            const oldDpr = canvas.width / parseFloat(canvas.style.width || String(canvas.width))
+
             if (saveState && canvas.width > 0 && canvas.height > 0) {
                 imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
             }
 
-            canvas.width = width
-            canvas.height = height
+            // Set canvas internal size (scaled for high-DPI)
+            canvas.width = scaledWidth
+            canvas.height = scaledHeight
 
-            // Fill with white background
+            // Set canvas CSS size (actual display size)
+            canvas.style.width = `${width}px`
+            canvas.style.height = `${height}px`
+
+            // Scale the context to match device pixel ratio
+            ctx.scale(dpr, dpr)
+
+            // Fill with white background (using CSS dimensions)
             ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.fillRect(0, 0, width, height)
 
             if (imageData) {
-                ctx.putImageData(imageData, 0, 0)
+                // Restore imageData at the correct scale
+                if (oldDpr === dpr) {
+                    ctx.putImageData(imageData, 0, 0)
+                } else {
+                    // If DPR changed, we need to redraw the image
+                    const tempCanvas = document.createElement('canvas')
+                    tempCanvas.width = imageData.width
+                    tempCanvas.height = imageData.height
+                    const tempCtx = tempCanvas.getContext('2d')
+                    if (tempCtx) {
+                        tempCtx.putImageData(imageData, 0, 0)
+                        ctx.drawImage(tempCanvas, 0, 0)
+                    }
+                }
             }
 
             // Save initial state only once
