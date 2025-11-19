@@ -1,76 +1,362 @@
-.canvas-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
-  background: #ffffff;
-  border-bottom: 1px solid #e5e5e5;
+/***************************************
+  GLOBAL OVERRIDES (SCOPED TO THIS PAGE)
+****************************************/
+
+.idea-dump-page * {
+  font-family: "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.idea-dump-page ion-header,
+.idea-dump-page ion-toolbar {
+  --background: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove Ionic button hover/focus/ripple ONLY on this page */
+.idea-dump-page ion-button,
+.idea-dump-page button {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.idea-dump-page ion-button {
+  --background: transparent !important;
+  --color: inherit !important;
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
+  --box-shadow: none !important;
+  --ripple-color: transparent !important;
+}
+
+.idea-dump-page ion-button::part(native),
+.idea-dump-page ion-button::part(native):hover,
+.idea-dump-page ion-button::part(native):active,
+.idea-dump-page ion-button::part(native):focus,
+.idea-dump-page ion-button::part(native):focus-visible {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+}
+
+.idea-dump-page ion-button:hover,
+.idea-dump-page ion-button:focus,
+.idea-dump-page ion-button:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.idea-dump-page ion-ripple-effect {
+  display: none !important;
+}
+
+/***************************************
+  HEADER
+****************************************/
+
+.idea-dump-page .id-header {
+  width: 100%;
+  background: white;
+  padding-top: calc(env(safe-area-inset-top) + 4px);
+  padding-bottom: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  position: relative;
+  z-index: 10;
+}
+
+.idea-dump-page .id-header-left {
+  padding-left: 16px;
   display: flex;
   align-items: center;
 }
-.canvas-title-container {
+
+.idea-dump-page .id-back-btn {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.idea-dump-page .id-back-btn ion-icon {
+  font-size: 18px;
+  color: #333;
+}
+
+.idea-dump-page .id-header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
 }
-.canvas-title-block { line-height: 1.2; }
-.canvas-title { font-size: 18px; font-weight: 600; color: #000; }
-.canvas-subtitle { margin-top: 2px; font-size: 13px; font-weight: 400; color: #6c6c6c; }
 
-.canvas-content { --padding-top: 0; background: #ffffff; }
+.idea-dump-page .id-header-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111;
+}
 
-.right-actions { display: flex; gap: 10px; }
-.process-pill {
-  --background: #ffffff;
-  --border-radius: 9999px;
-  --box-shadow: 0 2px 12px rgba(0,0,0,.08);
-  --padding-start: 14px;
-  --padding-end: 14px;
-  height: 34px;
+.idea-dump-page .id-header-subtitle {
+  margin-top: 3px;
   font-size: 13px;
+  color: #6e6e6e;
+}
+
+/***************************************
+  RIGHT SIDE BUTTONS
+****************************************/
+
+.idea-dump-page .id-header-right {
+  padding-right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Glass pill button (Process Ideas) */
+.idea-dump-page .id-pill {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 9999px;
+
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.idea-dump-page .id-pill ion-icon {
+  border: 1.3px solid #333;
+  border-radius: 50%;
+  padding: 2px;
+  font-size: 14px;
+  background: rgba(255,255,255,0.5);
+}
+
+/* Glass round "+" button */
+.idea-dump-page .id-circle-btn {
+  height: 32px;
+  width: 32px;
+  border-radius: 9999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  color: #333;
+}
+
+.idea-dump-page .id-circle-btn ion-icon {
+  font-size: 18px;
+  color: #333;
+}
+
+/***************************************
+  CONTENT + GRID
+****************************************/
+
+.idea-dump-page .id-content {
+  background: white;
+}
+
+.idea-dump-page .id-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 28px;
+  padding: 0 26px 40px;
+}
+
+/***************************************
+  CARDS
+****************************************/
+
+.idea-dump-page .id-card {
+  position: relative;
+  height: 250px;
+  border-radius: 20px;
+  overflow: hidden;
+
+  background: #111;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.14);
+  transition: transform 0.15s ease;
+}
+
+.idea-dump-page .id-card:active {
+  transform: scale(0.98);
+}
+
+.idea-dump-page .id-thumb {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Gradient overlay */
+.idea-dump-page .id-gradient {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 55%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.75));
+}
+
+/* Card text */
+.idea-dump-page .id-meta {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: white;
+}
+
+.idea-dump-page .id-title-text {
+  font-size: 15px;
   font-weight: 600;
 }
-.circle-btn {
-  --background: #ffffff;
-  --box-shadow: 0 2px 12px rgba(0,0,0,.08);
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+
+.idea-dump-page .id-platform {
+  font-size: 12px;
+  opacity: 0.9;
 }
 
-.id-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
-  grid-auto-rows: 200px;
-  gap: 28px 28px;
-  max-width: 1024px;
-  margin: 24px auto 40px;
-  padding: 0 24px;
+/***************************************
+  UNPROCESSED STATE
+****************************************/
+
+.idea-dump-page .id-unprocessed {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.9));
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.id-card {
-  position: relative;
+
+.idea-dump-page .id-play {
+  background: white;
+  color: #111;
+  border-radius: 9999px;
+  padding: 12px;
+  font-size: 40px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.idea-dump-page .id-pop-inner {
+  width: 330px;
+  padding: 16px;
   border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 10px 24px rgba(0,0,0,.12);
-  background: #111;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.id-thumb { position: absolute; inset: 0; background-size: cover; background-position: center; }
-.id-gradient { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.75) 100%); }
-.id-meta { position: absolute; left: 14px; right: 14px; bottom: 12px; color: #fff; display: flex; flex-direction: column; gap: 4px; }
-.id-title-text { font-weight: 700; font-size: 16px; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
-.id-platform { font-size: 12px; opacity: .9; }
 
-.id-unprocessed { position: absolute; inset: 0; background: #1c1c1e; display: flex; align-items: flex-end; justify-content: stretch; }
-.id-unprocessed .id-meta { position: absolute; left: 14px; right: 14px; bottom: 12px; }
-.id-play { position: absolute; left: 24px; top: 24px; width: 72px; height: 72px; color: rgba(255,255,255,.75); filter: drop-shadow(0 4px 14px rgba(0,0,0,.4)); }
+.idea-dump-page .id-input {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
 
-.id-pop { --backdrop-opacity: 0; --max-height: none; overflow: visible; }
-.id-pop.small .id-pop-inner { width: 240px; }
-.id-pop-inner { width: 340px; padding: 12px; background: rgba(246, 248, 255, 0.9); backdrop-filter: blur(10px); border-radius: 16px; box-shadow: 0 12px 28px rgba(0,0,0,.15); display: flex; flex-direction: column; gap: 8px; overflow: visible; max-height: unset; }
-.id-pop-inner.mini { padding: 10px; }
+.idea-dump-page .id-input ion-icon {
+  font-size: 16px;
+  color: #444444;
+}
 
-.id-input { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; background: rgba(255,255,255,.92); border-radius: 14px; padding: 10px 12px; margin: 4px; color: #6c6c6c; min-height: 44px; box-sizing: border-box; }
-.id-upload { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 10px; background: rgba(92, 123, 255, .15); border-radius: 14px; padding: 10px 12px; margin: 8px 4px 4px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
-.id-upload span { font-size: 12px; color: #6b7cff; }
-.id-upload input { display: none; }
+.idea-dump-page .id-input ion-input {
+  font-size: 14px;
+}
 
-@media (max-width: 1024px) { .id-grid { grid-template-columns: repeat(2, minmax(260px, 1fr)); } }
-@media (max-width: 640px) { .id-grid { grid-template-columns: 1fr; } }
+.idea-dump-page .id-input-btn {
+  --background: #111111;
+  --color: white;
+  --border-radius: 9999px;
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.idea-dump-page .id-upload {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.idea-dump-page .id-upload span {
+  font-size: 12px;
+}
+
+.idea-dump-page .id-upload input {
+  display: none;
+}
+
+
+/***************************************
+  RESPONSIVE
+****************************************/
+
+@media (max-width: 1024px) {
+  .idea-dump-page .id-grid {
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .idea-dump-page .id-grid {
+    grid-template-columns: 1fr;
+  }
+}
