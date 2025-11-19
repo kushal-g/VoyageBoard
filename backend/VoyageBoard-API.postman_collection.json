@@ -1,0 +1,359 @@
+{
+  "info": {
+    "name": "VoyageBoard API",
+    "description": "API collection for VoyageBoard backend with Google Maps Places integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "voyageboard"
+  },
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the server is running and healthy"
+          },
+          "response": []
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api",
+              "host": ["{{base_url}}"],
+              "path": ["api"]
+            },
+            "description": "Get basic API information"
+          },
+          "response": []
+        }
+      ],
+      "description": "Basic health and status endpoints"
+    },
+    {
+      "name": "Google Maps Places",
+      "item": [
+        {
+          "name": "Autocomplete - Simple Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete?input=New York",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "New York",
+                  "description": "Search query for location"
+                }
+              ]
+            },
+            "description": "Search for places without session token (simpler but higher cost)"
+          },
+          "response": []
+        },
+        {
+          "name": "Autocomplete - With Session Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete?input=Paris&sessionToken={{session_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "Paris",
+                  "description": "Search query for location"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{session_token}}",
+                  "description": "Session token for billing optimization"
+                }
+              ]
+            },
+            "description": "Search for places with session token (cost-optimized)"
+          },
+          "response": []
+        },
+        {
+          "name": "Autocomplete - London",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete?input=London&sessionToken={{session_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "London"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{session_token}}"
+                }
+              ]
+            },
+            "description": "Search for London with session token"
+          },
+          "response": []
+        },
+        {
+          "name": "Autocomplete - Tokyo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete?input=Tokyo&sessionToken={{session_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "Tokyo"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{session_token}}"
+                }
+              ]
+            },
+            "description": "Search for Tokyo"
+          },
+          "response": []
+        },
+        {
+          "name": "Autocomplete - San Francisco",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete?input=San Francisco&sessionToken={{session_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "San Francisco"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{session_token}}"
+                }
+              ]
+            },
+            "description": "Search for San Francisco"
+          },
+          "response": []
+        },
+        {
+          "name": "Place Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/details/:placeId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "details", ":placeId"],
+              "variable": [
+                {
+                  "key": "placeId",
+                  "value": "ChIJOwg_06VPwokRYv534QaPC8g",
+                  "description": "Google Place ID (example: New York City)"
+                }
+              ]
+            },
+            "description": "Get detailed information about a place using its Place ID. Example Place ID is for New York City."
+          },
+          "response": []
+        },
+        {
+          "name": "Place Details - Paris",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/details/ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "details", "ChIJD7fiBh9u5kcRYJSMaMOCCwQ"]
+            },
+            "description": "Get details for Paris, France"
+          },
+          "response": []
+        }
+      ],
+      "description": "Google Maps Places API endpoints for autocomplete and place details"
+    },
+    {
+      "name": "Usage Statistics",
+      "item": [
+        {
+          "name": "Get Usage Stats (7 days)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stats"]
+            },
+            "description": "Get detailed usage statistics for the last 7 days (default)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Usage Stats (30 days)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stats"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "Number of days to include in statistics"
+                }
+              ]
+            },
+            "description": "Get detailed usage statistics for the last 30 days"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Usage Stats (1 day)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats?days=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stats"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "1",
+                  "description": "Get stats for today only"
+                }
+              ]
+            },
+            "description": "Get usage statistics for today only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Usage Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stats", "summary"]
+            },
+            "description": "Get a quick summary of API usage (last 30 days)"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Usage Statistics",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats/reset",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stats", "reset"]
+            },
+            "description": "Reset all usage statistics (use with caution)"
+          },
+          "response": []
+        }
+      ],
+      "description": "API usage statistics and monitoring endpoints"
+    },
+    {
+      "name": "Error Handling",
+      "item": [
+        {
+          "name": "Autocomplete - Missing Input",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/autocomplete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "autocomplete"]
+            },
+            "description": "Test error handling when input parameter is missing (should return 400)"
+          },
+          "response": []
+        },
+        {
+          "name": "Place Details - Invalid Place ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/places/details/invalid_place_id_12345",
+              "host": ["{{base_url}}"],
+              "path": ["api", "places", "details", "invalid_place_id_12345"]
+            },
+            "description": "Test error handling with an invalid place ID (should return 500 with error details)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Test error handling and edge cases"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Generate a new session token if it doesn't exist",
+          "if (!pm.collectionVariables.get('session_token')) {",
+          "    const uuid = require('uuid');",
+          "    const sessionToken = uuid.v4();",
+          "    pm.collectionVariables.set('session_token', sessionToken);",
+          "    console.log('Generated new session token:', sessionToken);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string",
+      "description": "Base URL for the VoyageBoard API"
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "type": "string",
+      "description": "Session token for Google Maps API billing optimization (auto-generated)"
+    }
+  ]
+}
