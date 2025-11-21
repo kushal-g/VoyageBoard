@@ -1,16 +1,11 @@
 .doodle-toolbar-container {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
+  width: fit-content;
   z-index: 500;
   pointer-events: auto;
-}
-
-.doodle-toolbar {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .doodle-toolbar .toolbar-group:not(:last-child)::after {
@@ -18,7 +13,7 @@
   width: 1px;
   height: 24px;
   background: rgba(0, 0, 0, 0.1);
-  margin-left: 6px;
+  margin-left: 4px;
 }
 
 /* Button styles with data-style="ghost" */
@@ -137,6 +132,10 @@
   position: relative;
   display: inline-block;
   margin: 0;
+}
+
+.control-button-wrapper + .control-button-wrapper {
+  margin-left: 2px;
 }
 
 .control-button {
