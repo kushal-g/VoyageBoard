@@ -7,7 +7,7 @@ type CanvasToolMouseEventHandler = (
 ) => void
 
 export interface CanvasTool {
-    toolbar: ReactNode | undefined,
+    toolbar: ReactNode | ((deps: Record<string, any>) => ReactNode) | undefined,
     cursor?: string,
     cursorElement?: ReactNode,
     onMouseDown: CanvasToolMouseEventHandler,

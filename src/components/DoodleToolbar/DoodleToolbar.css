@@ -1,0 +1,325 @@
+.doodle-toolbar-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  pointer-events: auto;
+}
+
+.doodle-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doodle-toolbar .toolbar-group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.1);
+  margin-left: 6px;
+}
+
+/* Button styles with data-style="ghost" */
+.doodle-toolbar button[data-style="ghost"] {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  line-height: 1;
+  outline: none;
+  box-shadow: none;
+}
+
+.doodle-toolbar button[data-style="ghost"]:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.doodle-toolbar button[data-style="ghost"]:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+  transform: scale(0.98);
+}
+
+.doodle-toolbar button[data-style="ghost"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.doodle-toolbar button[data-style="ghost"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.doodle-toolbar button[data-style="ghost"] svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* Mode button active state - light lavender/pale purple */
+.doodle-toolbar button[data-style="ghost"][data-active="true"] {
+  background: rgba(140, 140, 142, 0.5);
+  color: #4e4d4f;
+}
+
+.doodle-toolbar button[data-style="ghost"][data-active="true"]:hover {
+  background: rgba(151, 151, 151, 0.6);
+}
+
+.doodle-toolbar button[data-style="ghost"][data-active="true"] svg {
+  color: #4e4d4f;
+}
+
+/* Icon-only buttons (undo/redo) */
+.doodle-toolbar button[data-style="ghost"].button-icon {
+  padding: 5px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  justify-content: center;
+  margin: 0;
+  background: transparent;
+}
+
+.doodle-toolbar button[data-style="ghost"].button-icon:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.doodle-toolbar button[data-style="ghost"].button-icon svg {
+  color: #666;
+}
+
+/* Mode buttons */
+.doodle-toolbar .mode-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px !important;
+  background: transparent !important;
+}
+
+.doodle-toolbar .mode-button svg {
+  color: inherit;
+  width: 18px;
+  height: 18px;
+}
+
+.doodle-toolbar .mode-button[data-active="true"] {
+  background: rgba(213, 213, 213, 0.5) !important;
+  color: #4e4d4f;
+}
+
+.doodle-toolbar .mode-button[data-active="true"]:hover {
+  background: rgba(213, 213, 213, 0.5) !important;
+}
+
+.doodle-toolbar .mode-button[data-active="true"] svg {
+  color: #4e4d4f;
+}
+
+/* Control button wrapper for popovers */
+.control-button-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.color-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.eraser-icon-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Popovers */
+.popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 12px;
+  z-index: 1000;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.popover.wide {
+  min-width: 200px;
+  padding: 12px;
+}
+
+/* Color picker popover */
+.color-picker-input {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: none;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+.color-picker-input::-moz-color-swatch {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+/* Slider container */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.size-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: linear-gradient(
+    to right,
+    #a3b8ce 0%,
+    #a3b8ce var(--slider-percent, 0%),
+    #e0e0e0 var(--slider-percent, 0%),
+    hsl(0, 0%, 88%) 100%
+  );
+  cursor: pointer;
+  position: relative;
+}
+
+.size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #a3b8ce;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+.size-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #a3b8ce;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.size-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+.size-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #e0e0e0;
+}
+
+.slider-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .doodle-toolbar-container {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+  }
+
+  .doodle-toolbar {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px;
+  }
+
+  .doodle-toolbar .toolbar-group {
+    gap: 2px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .popover {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+
+  .popover.wide {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+

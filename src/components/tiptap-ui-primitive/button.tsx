@@ -4,6 +4,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode
   variant?: 'default' | 'icon'
   size?: 'sm' | 'md' | 'lg'
+  'data-style'?: 'ghost' | 'default'
+  'data-active'?: boolean
 }
 
 export function Button({ 
@@ -11,6 +13,8 @@ export function Button({
   variant = 'default', 
   size = 'md',
   className = '',
+  'data-style': dataStyle,
+  'data-active': dataActive,
   ...props 
 }: ButtonProps) {
   const variantClass = variant === 'icon' ? 'button-icon' : 'button-default'
@@ -19,6 +23,8 @@ export function Button({
   return (
     <button 
       className={`${variantClass} ${sizeClass} ${className}`}
+      data-style={dataStyle}
+      data-active={dataActive}
       {...props}
     >
       {children}

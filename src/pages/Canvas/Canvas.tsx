@@ -6,10 +6,6 @@ import { useEraserTool } from './tools/Eraser'
 import { useLocationTool } from './tools/Location'
 import { useTransitTool } from './tools/Transit'
 import { useGroupLocationTool } from './tools/GroupLocation'
-import { Toolbar, ToolbarGroup } from '@/components/tiptap-ui-primitive/toolbar'
-import { Button } from '@/components/tiptap-ui-primitive/button'
-import { UndoIcon } from '@/components/icons/undo-icon'
-import { RedoIcon } from '@/components/icons/redo-icon'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -191,32 +187,12 @@ export default function Canvas({ currentTool }: CanvasProps) {
         clearCanvas,
         undo,
         redo,
+        historyStep,
+        history,
     }
 
     return (
         <div className="canvas-container">
-            {/* Global Undo/Redo Toolbar */}
-            <Toolbar variant="floating" className="canvas-global-toolbar">
-                <ToolbarGroup>
-                    <Button 
-                        variant="icon"
-                        onClick={undo}
-                        disabled={historyStep <= 0}
-                        aria-label="Undo"
-                    >
-                        <UndoIcon />
-                    </Button>
-                    <Button 
-                        variant="icon"
-                        onClick={redo}
-                        disabled={historyStep >= history.length - 1}
-                        aria-label="Redo"
-                    >
-                        <RedoIcon />
-                    </Button>
-                </ToolbarGroup>
-            </Toolbar>
-
             <canvas
                 ref={canvasRef}
                 onMouseDown={(e) => activeTool?.onMouseDown(canvasRef, e, toolDeps)}
@@ -230,9 +206,9 @@ export default function Canvas({ currentTool }: CanvasProps) {
             {activeTool?.cursorElement}
 
             {activeTool?.toolbar && (
-                <div className="toolbar">
-                    {activeTool.toolbar}
-                </div>
+                typeof activeTool.toolbar === 'function' 
+                    ? activeTool.toolbar(toolDeps)
+                    : activeTool.toolbar
             )}
         </div>
     )

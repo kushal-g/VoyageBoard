@@ -56,7 +56,12 @@ export const useEraserTool = (): CanvasTool => {
         _deps: Record<string, any>
     ) => {
         const { x, y } = getCoordinates(canvasRef, e)
-        setCursorPosition({ x, y })
+        
+        // Use client coordinates for fixed positioning cursor
+        setCursorPosition({ 
+            x: e.clientX, 
+            y: e.clientY 
+        })
         setIsVisible(true)
 
         if (!isErasingRef.current) return
@@ -118,12 +123,14 @@ export const useEraserTool = (): CanvasTool => {
         <div
             className="eraser-cursor"
             style={{
+                position: 'fixed',
                 left: `${cursorPosition.x}px`,
                 top: `${cursorPosition.y}px`,
                 width: `${eraserSize}px`,
                 height: `${eraserSize}px`,
                 marginLeft: `-${eraserSize / 2}px`,
                 marginTop: `-${eraserSize / 2}px`,
+                pointerEvents: 'none',
             }}
         />
     ) : null

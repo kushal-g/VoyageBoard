@@ -7,8 +7,8 @@ import {
   createOutline,
   layersOutline,
   searchOutline,
-  brushOutline,
 } from 'ionicons/icons'
+import { SketchingIcon } from './icons/sketching-icon'
 
 type SidebarProps = {
   currentTool?: TOOL
@@ -50,17 +50,8 @@ export default function Sidebar({ currentTool, setCurrentTool, isOpen = false }:
           onClick={() => setCurrentTool && setCurrentTool('DOODLE')}
           aria-label="Doodle"
         >
-          <IonIcon icon={createOutline} className="menu-icon" />
+          <SketchingIcon className="menu-icon" />
           <span className="menu-label">Doodle</span>
-        </button>
-
-        <button
-          className={`menu-item ${currentTool === 'ERASER' ? 'selected' : ''}`}
-          onClick={() => setCurrentTool && setCurrentTool('ERASER')}
-          aria-label="Eraser"
-        >
-          <IonIcon icon={brushOutline} className="menu-icon" />
-          <span className="menu-label">Eraser</span>
         </button>
 
         <button
