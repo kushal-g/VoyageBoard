@@ -189,6 +189,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
         redo,
         historyStep,
         history,
+        canvasRef, // Pass canvas ref to tools
     }
 
     return (

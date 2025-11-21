@@ -4,6 +4,7 @@ import { Button } from '@/components/tiptap-ui-primitive/button'
 import { UndoIcon } from '@/components/icons/undo-icon'
 import { RedoIcon } from '@/components/icons/redo-icon'
 import { LocationPinIcon } from '@/components/icons/location-pin-icon'
+import { DragMove2LineIcon } from '@/components/icons/drag-move-2-line-icon'
 import './LocationToolbar.css'
 
 interface LocationToolbarDeps {
@@ -12,6 +13,7 @@ interface LocationToolbarDeps {
   saveToHistory: () => void
   canUndo?: boolean
   canRedo?: boolean
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>
 }
 
 interface LocationToolbarProps {
@@ -24,8 +26,10 @@ interface LocationToolbarProps {
   setShowSuggestions: (show: boolean) => void
   onLocationSelect: (location: string) => void
   onLocationChange: (location: string) => void
-  onAddLocation: () => void
+  onAddLocation: (canvasRef: React.RefObject<HTMLCanvasElement | null>) => void
   inputRef: React.RefObject<HTMLInputElement | null>
+  isSelectMode: boolean
+  onSelectModeToggle: () => void
 }
 
 export default function LocationToolbar({
@@ -40,6 +44,8 @@ export default function LocationToolbar({
   onLocationChange,
   onAddLocation,
   inputRef,
+  isSelectMode,
+  onSelectModeToggle,
 }: LocationToolbarProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   
@@ -90,7 +96,21 @@ export default function LocationToolbar({
           </Button>
         </ToolbarGroup>
 
-        {/* Group 2: Location Input and Add Location Button */}
+        {/* Group 2: Select Button */}
+        <ToolbarGroup className="toolbar-group">
+          <Button
+            variant="icon"
+            data-style="ghost"
+            data-active={isSelectMode}
+            onClick={onSelectModeToggle}
+            aria-label="Select Mode"
+            title="Enable dragging mode for location flags"
+          >
+            <DragMove2LineIcon />
+          </Button>
+        </ToolbarGroup>
+
+        {/* Group 3: Location Input and Add Location Button */}
         <ToolbarGroup className="toolbar-group">
           {/* Location Input */}
           <div className="control-button-wrapper" ref={locationInputRef}>
@@ -118,9 +138,9 @@ export default function LocationToolbar({
                 className="location-input"
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && pinLocation.trim() && filteredDestinations.length > 0) {
+                  if (e.key === 'Enter' && pinLocation.trim() && filteredDestinations.length > 0 && deps.canvasRef) {
                     e.preventDefault()
-                    onAddLocation()
+                    onAddLocation(deps.canvasRef)
                   }
                 }}
               />
@@ -143,7 +163,11 @@ export default function LocationToolbar({
           {/* Add Location Button */}
           <Button
             data-style="ghost"
-            onClick={onAddLocation}
+            onClick={() => {
+              if (deps.canvasRef) {
+                onAddLocation(deps.canvasRef)
+              }
+            }}
             disabled={!pinLocation.trim() || filteredDestinations.length === 0}
             className={`add-location-button ${pinLocation.trim() && filteredDestinations.length > 0 ? 'ready' : ''}`}
             aria-label="Add Location"
@@ -154,7 +178,7 @@ export default function LocationToolbar({
           </Button>
         </ToolbarGroup>
 
-        {/* Group 3: Color Picker */}
+        {/* Group 4: Color Picker */}
         <ToolbarGroup className="toolbar-group">
           <div className="control-button-wrapper" ref={colorPickerRef}>
             <Button

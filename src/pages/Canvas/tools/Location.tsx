@@ -55,7 +55,7 @@ export const useLocationTool = (
     const [isDragging, setIsDragging] = useState(false)
     const [hoverPinIndex, setHoverPinIndex] = useState<number | null>(null)
     const [isEditingLocation, setIsEditingLocation] = useState(false)
-    const [isAddMode, setIsAddMode] = useState(false)
+    const [isSelectMode, setIsSelectMode] = useState(false)
     const canvasRefForRedraw = useRef<HTMLCanvasElement | null>(null)
     const canvasStateBeforeDrag = useRef<ImageData | null>(null)
     const mouseDownPosition = useRef<Point | null>(null)
@@ -77,37 +77,22 @@ export const useLocationTool = (
 
     // Redraw canvas when pins change (to show updated location text)
     useEffect(() => {
-        if (canvasRefForRedraw.current && selectedPinIndex !== null) {
+        if (canvasRefForRedraw.current) {
             const canvas = canvasRefForRedraw.current
             const ctx = canvas.getContext('2d')
             if (!ctx) return
 
-            // Save current state, clear, and redraw all pins
-            const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            ctx.putImageData(currentState, 0, 0)
-
-            // Redraw all pins with updated locations
-            pins.forEach(pin => {
-                // Clear old pin area first
-                const size = 30
-                ctx.font = '14px Arial, sans-serif'
-                const textWidth = ctx.measureText(pin.location).width
-                const clearWidth = size + textWidth + 30
-                const clearHeight = size + 25
-
-                ctx.fillStyle = '#ffffff'
-                ctx.fillRect(
-                    pin.x - size,
-                    pin.y - size - 5,
-                    clearWidth,
-                    clearHeight
-                )
-
-                // Draw pin with updated location
-                drawPin(ctx, pin.x, pin.y, pinColor, pin.location)
-            })
+            // Only redraw if we have pins to draw
+            if (pins.length > 0) {
+                // Redraw all locations with flag + badge
+                pins.forEach(pin => {
+                    // Draw location with flag + badge (use pin's color if stored, otherwise default)
+                    const color = (pin as any).color || pinColor
+                    drawLocation(ctx, pin.x, pin.y, color, pin.location)
+                })
+            }
         }
-    }, [pins, selectedPinIndex, pinColor])
+    }, [pins, pinColor])
 
     const handleLocationSelect = (location: string) => {
         setPinLocation(location)
@@ -175,12 +160,13 @@ export const useLocationTool = (
         }
     }
 
-    // Check if a point is near a pin (within clickable radius)
+    // Check if a point is near a location flag (within clickable radius)
     const findPinAtPosition = (x: number, y: number): number | null => {
-        const clickRadius = 20 // Radius to detect clicks on pins
+        const clickRadius = 30 // Radius to detect clicks on flag icons
 
         for (let i = pins.length - 1; i >= 0; i--) {
             const pin = pins[i]
+            // Check distance from flag pole position
             const dx = x - pin.x
             const dy = y - pin.y
             const distance = Math.sqrt(dx * dx + dy * dy)
@@ -193,103 +179,151 @@ export const useLocationTool = (
         return null
     }
 
-    // Handle adding location via button click
-    const handleAddLocation = () => {
-        if (!pinLocation.trim() || filteredDestinations.length === 0) return
-        
-        // Enable add mode - next canvas click will add the pin
-        setIsAddMode(true)
+    // Handle Select mode toggle
+    const handleSelectModeToggle = () => {
+        setIsSelectMode(prev => !prev)
         setIsEditingLocation(false)
         setSelectedPinIndex(null)
     }
 
-    const drawPin = (
+    // Handle adding location via button click - add immediately to center of canvas
+    const handleAddLocation = (canvasRef: React.RefObject<HTMLCanvasElement | null> | undefined) => {
+        if (!pinLocation.trim() || filteredDestinations.length === 0) return
+        
+        const canvas = canvasRef?.current
+        if (!canvas) {
+            console.warn('Canvas ref not available')
+            return
+        }
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        // Get canvas dimensions in CSS pixels (not accounting for device pixel ratio)
+        // The canvas context is already scaled for DPR
+        const rect = canvas.getBoundingClientRect()
+        const x = rect.width / 2
+        const y = rect.height / 2
+
+        // Create new pin
+        const newPin: LocationPin & { color?: string } = {
+            x,
+            y,
+            id: Date.now(),
+            location: pinLocation,
+            color: pinColor
+        }
+
+        // Draw location on canvas immediately
+        drawLocation(ctx, x, y, pinColor, pinLocation)
+
+        // Add pin to state
+        setPins(prev => [...prev, newPin])
+
+        // Save canvas ref for future use
+        canvasRefForRedraw.current = canvas
+
+        // Clear location input
+        setPinLocation('')
+        setFilteredDestinations([])
+        setShowSuggestions(false)
+    }
+
+    // Draw flag icon on canvas
+    const drawFlagIcon = (
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        color: string,
+        size: number = 24
+    ) => {
+        ctx.save()
+        ctx.strokeStyle = color
+        ctx.fillStyle = color
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+
+        // Flag pole (vertical line)
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x, y - size * 0.8)
+        ctx.stroke()
+
+        // Flag shape (rectangle)
+        const flagWidth = size * 0.6
+        const flagHeight = size * 0.4
+        ctx.beginPath()
+        ctx.moveTo(x, y - size * 0.8)
+        ctx.lineTo(x + flagWidth, y - size * 0.8)
+        ctx.lineTo(x + flagWidth, y - size * 0.8 + flagHeight)
+        ctx.lineTo(x, y - size * 0.8 + flagHeight)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.restore()
+    }
+
+    // Draw location with flag icon + badge
+    const drawLocation = (
         ctx: CanvasRenderingContext2D,
         x: number,
         y: number,
         color: string,
         location: string
     ) => {
-        const size = 30 // Fixed size
-        // Draw location pin shape
         ctx.save()
+        
+        const flagSize = 24
+        const flagPoleX = x
+        const flagPoleY = y
+        
+        // Draw flag icon
+        drawFlagIcon(ctx, flagPoleX, flagPoleY, color, flagSize)
 
-        // Pin body (teardrop shape)
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(x, y - size / 2, size / 3, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Pin point
-        ctx.beginPath()
-        ctx.moveTo(x - size / 4, y - size / 4)
-        ctx.lineTo(x, y + size / 4)
-        ctx.lineTo(x + size / 4, y - size / 4)
-        ctx.closePath()
-        ctx.fill()
-
-        // Inner circle (white)
-        ctx.fillStyle = '#ffffff'
-        ctx.beginPath()
-        ctx.arc(x, y - size / 2, size / 6, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Pin outline
-        ctx.strokeStyle = '#000000'
-        ctx.lineWidth = 1.5
-
-        // Outline the main circle
-        ctx.beginPath()
-        ctx.arc(x, y - size / 2, size / 3, 0, Math.PI * 2)
-        ctx.stroke()
-
-        // Outline the point
-        ctx.beginPath()
-        ctx.moveTo(x - size / 4, y - size / 4)
-        ctx.lineTo(x, y + size / 4)
-        ctx.lineTo(x + size / 4, y - size / 4)
-        ctx.closePath()
-        ctx.stroke()
-
-        // Draw location text next to the pin
+        // Draw badge with location text
         if (location) {
-            ctx.font = '14px Arial, sans-serif'
+            const mutedColor = getMutedColor(color)
+            const padding = 6
+            const badgePadding = 4
+            
+            ctx.font = '12px Arial, sans-serif'
             ctx.textAlign = 'left'
             ctx.textBaseline = 'middle'
-
-            // Add a white background behind the text for readability
+            
             const textMetrics = ctx.measureText(location)
             const textWidth = textMetrics.width
-            const textHeight = 18
-            const padding = 4
-            const textX = x + size / 2 + 8
-            const textY = y - size / 2
+            const textHeight = 16
+            const badgeX = flagPoleX + flagSize * 0.6 + padding
+            const badgeY = flagPoleY - flagSize * 0.6
 
-            // Convert color to muted version (lighter, less saturated)
-            const mutedColor = getMutedColor(color)
+            // Draw badge background (rounded rectangle)
+            const badgeWidth = textWidth + badgePadding * 2
+            const badgeHeight = textHeight + badgePadding * 2
+            const radius = 6
 
-            // Draw background with muted color
             ctx.fillStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.9)`
-            ctx.fillRect(
-                textX - padding,
-                textY - textHeight / 2 - padding,
-                textWidth + padding * 2,
-                textHeight + padding * 2
-            )
+            ctx.beginPath()
+            ctx.moveTo(badgeX + radius, badgeY - badgeHeight / 2)
+            ctx.lineTo(badgeX + badgeWidth - radius, badgeY - badgeHeight / 2)
+            ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY - badgeHeight / 2, badgeX + badgeWidth, badgeY - badgeHeight / 2 + radius)
+            ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight / 2 - radius)
+            ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight / 2, badgeX + badgeWidth - radius, badgeY + badgeHeight / 2)
+            ctx.lineTo(badgeX + radius, badgeY + badgeHeight / 2)
+            ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight / 2, badgeX, badgeY + badgeHeight / 2 - radius)
+            ctx.lineTo(badgeX, badgeY - badgeHeight / 2 + radius)
+            ctx.quadraticCurveTo(badgeX, badgeY - badgeHeight / 2, badgeX + radius, badgeY - badgeHeight / 2)
+            ctx.closePath()
+            ctx.fill()
 
-            // Draw border around text background in muted color
-            ctx.strokeStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.6)`
+            // Draw border
+            ctx.strokeStyle = color
             ctx.lineWidth = 1
-            ctx.strokeRect(
-                textX - padding,
-                textY - textHeight / 2 - padding,
-                textWidth + padding * 2,
-                textHeight + padding * 2
-            )
+            ctx.stroke()
 
-            // Draw the text in muted color
-            ctx.fillStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.9)`
-            ctx.fillText(location, textX, textY)
+            // Draw text in badge
+            ctx.fillStyle = color
+            ctx.fillText(location, badgeX + badgePadding, badgeY)
         }
 
         ctx.restore()
@@ -298,7 +332,7 @@ export const useLocationTool = (
     const onMouseDown = (
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
         e: React.MouseEvent<HTMLCanvasElement>,
-        deps: Record<string, any>
+        _deps: Record<string, any>
     ) => {
         const canvas = canvasRef.current
         if (!canvas) return
@@ -309,38 +343,15 @@ export const useLocationTool = (
         const { x, y } = getCoordinates(canvasRef, e)
         canvasRefForRedraw.current = canvas
 
-        // Check if clicking on an existing pin
+        // Check if clicking on an existing location flag
         const pinIndex = findPinAtPosition(x, y)
 
-        if (pinIndex !== null) {
-            // If in add mode, don't select - just add at clicked position
-            if (isAddMode && pinLocation.trim() && filteredDestinations.length > 0) {
-                // Add pin at clicked position even if it's on an existing pin
-                drawPin(ctx, x, y, pinColor, pinLocation)
-
-                const newPin: LocationPin = {
-                    x,
-                    y,
-                    id: Date.now(),
-                    location: pinLocation
-                }
-                setPins(prev => [...prev, newPin])
-
-                if (deps.saveToHistory) {
-                    deps.saveToHistory()
-                }
-                
-                setIsAddMode(false)
-                setPinLocation('')
-                return
-            }
-
-            // Select this pin and load its location into the text field
+        // Only allow dragging in Select mode
+        if (isSelectMode && pinIndex !== null) {
+            // Select this location and prepare for dragging
             setSelectedPinIndex(pinIndex)
-            setPinLocation(pins[pinIndex].location)
-            setIsEditingLocation(true)
 
-            // Save the current canvas state (with all pins) for potential dragging
+            // Save the current canvas state (with all locations) for potential dragging
             const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height)
             canvasStateBeforeDrag.current = currentState
 
@@ -348,54 +359,16 @@ export const useLocationTool = (
             mouseDownPosition.current = { x, y }
             hasMoved.current = false
 
-            // Start dragging existing pin
+            // Start dragging existing location
             setIsDragging(true)
-            setIsAddMode(false)
+        } else if (!isSelectMode) {
+            // When not in Select mode, clicking on canvas does nothing
+            // (locations are added via button click only)
+            return
         } else {
-            // If in add mode, add pin at clicked position
-            if (isAddMode && pinLocation.trim() && filteredDestinations.length > 0) {
-                drawPin(ctx, x, y, pinColor, pinLocation)
-
-                const newPin: LocationPin = {
-                    x,
-                    y,
-                    id: Date.now(),
-                    location: pinLocation
-                }
-                setPins(prev => [...prev, newPin])
-
-                if (deps.saveToHistory) {
-                    deps.saveToHistory()
-                }
-                
-                setIsAddMode(false)
-                setPinLocation('')
-                return
-            }
-
-            // Deselect any selected pin
+            // In Select mode but not clicking on a location - deselect
             setSelectedPinIndex(null)
             setIsEditingLocation(false)
-            setIsAddMode(false)
-
-            // Create new pin (with empty location if not specified)
-            if (pinLocation.trim()) {
-                drawPin(ctx, x, y, pinColor, pinLocation)
-
-                // Add pin to state
-                const newPin: LocationPin = {
-                    x,
-                    y,
-                    id: Date.now(),
-                    location: pinLocation
-                }
-                setPins(prev => [...prev, newPin])
-
-                // Save to history
-                if (deps.saveToHistory) {
-                    deps.saveToHistory()
-                }
-            }
         }
     }
 
@@ -428,28 +401,29 @@ export const useLocationTool = (
 
             const pin = pins[selectedPinIndex]
             if (pin) {
-                // Calculate the area to clear (old pin location)
-                const size = 30
-                // Set font to match what we use in drawPin
-                ctx.font = '14px Arial, sans-serif'
+                const color = (pin as any).color || pinColor
+                
+                // Calculate the area to clear (old location flag + badge)
+                const flagSize = 24
+                ctx.font = '12px Arial, sans-serif'
                 const textWidth = ctx.measureText(pin.location).width
-                const clearWidth = size + textWidth + 30 // Extra space for padding and borders
-                const clearHeight = size + 25
+                const clearWidth = flagSize * 0.6 + textWidth + 50
+                const clearHeight = flagSize + 30
 
-                // Clear the old pin location (erase old pin)
+                // Clear the old location (erase old flag + badge)
                 ctx.fillStyle = '#ffffff'
                 ctx.fillRect(
-                    pin.x - size,
-                    pin.y - size - 5,
+                    pin.x - 10,
+                    pin.y - flagSize - 15,
                     clearWidth,
                     clearHeight
                 )
 
-                // Draw the pin at new position
-                drawPin(ctx, x, y, pinColor, pin.location)
+                // Draw the location at new position
+                drawLocation(ctx, x, y, color, pin.location)
             }
-        } else {
-            // Check if hovering over a pin (for cursor change)
+        } else if (isSelectMode) {
+            // Check if hovering over a location flag (for cursor change)
             const pinIndex = findPinAtPosition(x, y)
             setHoverPinIndex(pinIndex)
         }
@@ -546,6 +520,7 @@ export const useLocationTool = (
                 saveToHistory: deps.saveToHistory || (() => {}),
                 canUndo: deps.historyStep > 0,
                 canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+                canvasRef: deps.canvasRef,
             }}
             pinColor={pinColor}
             setPinColor={setPinColor}
@@ -557,12 +532,14 @@ export const useLocationTool = (
             onLocationChange={handleLocationChange}
             onAddLocation={handleAddLocation}
             inputRef={inputRef}
+            isSelectMode={isSelectMode}
+            onSelectModeToggle={handleSelectModeToggle}
         />
     )
 
     return {
         toolbar,
-        cursor: isAddMode ? 'crosshair' : hoverPinIndex !== null ? 'move' : 'crosshair',
+        cursor: isSelectMode ? (hoverPinIndex !== null ? 'move' : 'default') : 'default',
         onMouseDown,
         onMouseMove,
         onMouseUp,
