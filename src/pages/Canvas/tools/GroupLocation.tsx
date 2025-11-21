@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import type { CanvasTool } from '../types'
 import type { LocationPin } from '../Canvas'
+import GroupToolbar from '@/components/GroupToolbar/GroupToolbar'
 
 interface LocationGroup {
     id: string
@@ -258,125 +259,27 @@ export const useGroupLocationTool = (
         setHoverPinIndex(null)
     }
 
-    const toolbar = (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
-            <div className="toolbar-group">
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-                    Create Group
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ minWidth: '80px' }}>Group Color:</label>
-                        <input
-                            type="color"
-                            value={currentGroupColor}
-                            onChange={(e) => setCurrentGroupColor(e.target.value)}
-                            className="color-picker"
-                            style={{ width: '50px', height: '32px' }}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ minWidth: '80px' }}>Group Label:</label>
-                        <input
-                            type="text"
-                            value={currentGroupLabel}
-                            onChange={(e) => setCurrentGroupLabel(e.target.value)}
-                            placeholder="e.g., Europe Trip"
-                            style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                borderRadius: '6px',
-                                border: '1px solid #e0e0e0',
-                                fontSize: '14px'
-                            }}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button
-                            onClick={createGroup}
-                            disabled={selectedPinIds.size === 0}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: '6px',
-                                border: 'none',
-                                backgroundColor: selectedPinIds.size === 0 ? '#cccccc' : '#4CAF50',
-                                color: 'white',
-                                cursor: selectedPinIds.size === 0 ? 'not-allowed' : 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500'
-                            }}
-                        >
-                            Create Group ({selectedPinIds.size} pins selected)
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {groups.length > 0 && (
-                <div className="toolbar-group">
-                    <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-                        Existing Groups
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
-                        {groups.map(group => (
-                            <div
-                                key={group.id}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px',
-                                    borderRadius: '6px',
-                                    border: `2px solid ${activeGroupId === group.id ? group.color : '#e0e0e0'}`,
-                                    backgroundColor: activeGroupId === group.id ? `${group.color}15` : 'white'
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        borderRadius: '4px',
-                                        backgroundColor: group.color,
-                                        border: '2px solid #000',
-                                        flexShrink: 0
-                                    }}
-                                />
-                                <input
-                                    type="text"
-                                    value={group.label}
-                                    onChange={(e) => updateGroupLabel(group.id, e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '4px 8px',
-                                        border: '1px solid #e0e0e0',
-                                        borderRadius: '4px',
-                                        fontSize: '13px'
-                                    }}
-                                />
-                                <span style={{ fontSize: '12px', color: '#666' }}>
-                                    ({group.pinIds.length})
-                                </span>
-                                <button
-                                    onClick={() => deleteGroup(group.id)}
-                                    style={{
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ff4444',
-                                        backgroundColor: 'white',
-                                        color: '#ff4444',
-                                        cursor: 'pointer',
-                                        fontSize: '12px'
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-        </div>
+    const toolbar = (deps: Record<string, any>) => (
+        <GroupToolbar
+            deps={{
+                undo: deps.undo || (() => {}),
+                redo: deps.redo || (() => {}),
+                saveToHistory: deps.saveToHistory || (() => {}),
+                canUndo: deps.historyStep > 0,
+                canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+            }}
+            groupColor={currentGroupColor}
+            setGroupColor={setCurrentGroupColor}
+            groupLabel={currentGroupLabel}
+            setGroupLabel={setCurrentGroupLabel}
+            selectedPinCount={selectedPinIds.size}
+            onCreateGroup={createGroup}
+            groups={groups}
+            activeGroupId={activeGroupId}
+            onUpdateGroupLabel={updateGroupLabel}
+            onDeleteGroup={deleteGroup}
+            onSetActiveGroup={setActiveGroupId}
+        />
     )
 
     return {

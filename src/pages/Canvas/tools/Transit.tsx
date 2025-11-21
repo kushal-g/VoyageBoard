@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CanvasTool } from '../types'
 import type { LocationPin } from '../Canvas'
+import TransitToolbar from '@/components/TransitToolbar/TransitToolbar'
 
 interface Point {
     x: number
@@ -688,29 +689,20 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         }
     }
 
-    const toolbar = (
-        <>
-            <div className="toolbar-group">
-                <label>Line Color:</label>
-                <input
-                    type="color"
-                    value={lineColor}
-                    onChange={(e) => setLineColor(e.target.value)}
-                    className="color-picker"
-                />
-            </div>
-            <div className="toolbar-group">
-                <label>Line Width: {lineWidth}px</label>
-                <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={lineWidth}
-                    onChange={(e) => setLineWidth(Number(e.target.value))}
-                    className="brush-size-slider"
-                />
-            </div>
-        </>
+    const toolbar = (deps: Record<string, any>) => (
+        <TransitToolbar
+            deps={{
+                undo: deps.undo || (() => {}),
+                redo: deps.redo || (() => {}),
+                saveToHistory: deps.saveToHistory || (() => {}),
+                canUndo: deps.historyStep > 0,
+                canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+            }}
+            lineColor={lineColor}
+            setLineColor={setLineColor}
+            lineWidth={lineWidth}
+            setLineWidth={setLineWidth}
+        />
     )
 
     return {

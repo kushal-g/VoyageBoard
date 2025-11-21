@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CanvasTool } from '../types'
 import type { LocationPin } from '../Canvas'
+import LocationToolbar from '@/components/LocationToolbar/LocationToolbar'
 
 interface Point {
     x: number
@@ -54,6 +55,7 @@ export const useLocationTool = (
     const [isDragging, setIsDragging] = useState(false)
     const [hoverPinIndex, setHoverPinIndex] = useState<number | null>(null)
     const [isEditingLocation, setIsEditingLocation] = useState(false)
+    const [isAddMode, setIsAddMode] = useState(false)
     const canvasRefForRedraw = useRef<HTMLCanvasElement | null>(null)
     const canvasStateBeforeDrag = useRef<ImageData | null>(null)
     const mouseDownPosition = useRef<Point | null>(null)
@@ -154,6 +156,25 @@ export const useLocationTool = (
         }
     }
 
+    // Convert hex color to muted (lighter) version
+    const getMutedColor = (hexColor: string): { r: number; g: number; b: number } => {
+        // Remove # if present
+        const hex = hexColor.replace('#', '')
+        
+        // Parse RGB
+        const r = parseInt(hex.substring(0, 2), 16)
+        const g = parseInt(hex.substring(2, 4), 16)
+        const b = parseInt(hex.substring(4, 6), 16)
+        
+        // Lighten by mixing with white (60% white, 40% original)
+        const lightenFactor = 0.6
+        return {
+            r: Math.round(r + (255 - r) * lightenFactor),
+            g: Math.round(g + (255 - g) * lightenFactor),
+            b: Math.round(b + (255 - b) * lightenFactor)
+        }
+    }
+
     // Check if a point is near a pin (within clickable radius)
     const findPinAtPosition = (x: number, y: number): number | null => {
         const clickRadius = 20 // Radius to detect clicks on pins
@@ -170,6 +191,16 @@ export const useLocationTool = (
         }
 
         return null
+    }
+
+    // Handle adding location via button click
+    const handleAddLocation = () => {
+        if (!pinLocation.trim() || filteredDestinations.length === 0) return
+        
+        // Enable add mode - next canvas click will add the pin
+        setIsAddMode(true)
+        setIsEditingLocation(false)
+        setSelectedPinIndex(null)
     }
 
     const drawPin = (
@@ -223,7 +254,6 @@ export const useLocationTool = (
         // Draw location text next to the pin
         if (location) {
             ctx.font = '14px Arial, sans-serif'
-            ctx.fillStyle = '#000000'
             ctx.textAlign = 'left'
             ctx.textBaseline = 'middle'
 
@@ -235,8 +265,11 @@ export const useLocationTool = (
             const textX = x + size / 2 + 8
             const textY = y - size / 2
 
-            // Draw white background with slight transparency
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+            // Convert color to muted version (lighter, less saturated)
+            const mutedColor = getMutedColor(color)
+
+            // Draw background with muted color
+            ctx.fillStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.9)`
             ctx.fillRect(
                 textX - padding,
                 textY - textHeight / 2 - padding,
@@ -244,8 +277,8 @@ export const useLocationTool = (
                 textHeight + padding * 2
             )
 
-            // Draw border around text background
-            ctx.strokeStyle = '#e0e0e0'
+            // Draw border around text background in muted color
+            ctx.strokeStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.6)`
             ctx.lineWidth = 1
             ctx.strokeRect(
                 textX - padding,
@@ -254,8 +287,8 @@ export const useLocationTool = (
                 textHeight + padding * 2
             )
 
-            // Draw the text
-            ctx.fillStyle = '#000000'
+            // Draw the text in muted color
+            ctx.fillStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.9)`
             ctx.fillText(location, textX, textY)
         }
 
@@ -280,6 +313,28 @@ export const useLocationTool = (
         const pinIndex = findPinAtPosition(x, y)
 
         if (pinIndex !== null) {
+            // If in add mode, don't select - just add at clicked position
+            if (isAddMode && pinLocation.trim() && filteredDestinations.length > 0) {
+                // Add pin at clicked position even if it's on an existing pin
+                drawPin(ctx, x, y, pinColor, pinLocation)
+
+                const newPin: LocationPin = {
+                    x,
+                    y,
+                    id: Date.now(),
+                    location: pinLocation
+                }
+                setPins(prev => [...prev, newPin])
+
+                if (deps.saveToHistory) {
+                    deps.saveToHistory()
+                }
+                
+                setIsAddMode(false)
+                setPinLocation('')
+                return
+            }
+
             // Select this pin and load its location into the text field
             setSelectedPinIndex(pinIndex)
             setPinLocation(pins[pinIndex].location)
@@ -295,26 +350,51 @@ export const useLocationTool = (
 
             // Start dragging existing pin
             setIsDragging(true)
+            setIsAddMode(false)
         } else {
+            // If in add mode, add pin at clicked position
+            if (isAddMode && pinLocation.trim() && filteredDestinations.length > 0) {
+                drawPin(ctx, x, y, pinColor, pinLocation)
+
+                const newPin: LocationPin = {
+                    x,
+                    y,
+                    id: Date.now(),
+                    location: pinLocation
+                }
+                setPins(prev => [...prev, newPin])
+
+                if (deps.saveToHistory) {
+                    deps.saveToHistory()
+                }
+                
+                setIsAddMode(false)
+                setPinLocation('')
+                return
+            }
+
             // Deselect any selected pin
             setSelectedPinIndex(null)
             setIsEditingLocation(false)
+            setIsAddMode(false)
 
             // Create new pin (with empty location if not specified)
-            drawPin(ctx, x, y, pinColor, pinLocation)
+            if (pinLocation.trim()) {
+                drawPin(ctx, x, y, pinColor, pinLocation)
 
-            // Add pin to state
-            const newPin: LocationPin = {
-                x,
-                y,
-                id: Date.now(),
-                location: pinLocation
-            }
-            setPins(prev => [...prev, newPin])
+                // Add pin to state
+                const newPin: LocationPin = {
+                    x,
+                    y,
+                    id: Date.now(),
+                    location: pinLocation
+                }
+                setPins(prev => [...prev, newPin])
 
-            // Save to history
-            if (deps.saveToHistory) {
-                deps.saveToHistory()
+                // Save to history
+                if (deps.saveToHistory) {
+                    deps.saveToHistory()
+                }
             }
         }
     }
@@ -458,81 +538,31 @@ export const useLocationTool = (
         }
     }
 
-    const toolbar = (
-        <>
-            <div className="toolbar-group">
-                <label>Pin Color:</label>
-                <input
-                    type="color"
-                    value={pinColor}
-                    onChange={(e) => setPinColor(e.target.value)}
-                    className="color-picker"
-                />
-            </div>
-            <div className="toolbar-group location-input-group">
-                <label>Pin Location:</label>
-                <div style={{ position: 'relative' }}>
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={pinLocation}
-                        onChange={(e) => handleLocationChange(e.target.value)}
-                        onFocus={() => pinLocation && setShowSuggestions(filteredDestinations.length > 0)}
-                        placeholder="Enter location..."
-                        className="location-input"
-                        style={{
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #e0e0e0',
-                            fontSize: '14px',
-                            minWidth: '200px',
-                            outline: 'none'
-                        }}
-                    />
-                    {showSuggestions && (
-                        <div
-                            className="location-suggestions"
-                            style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                right: 0,
-                                marginTop: '4px',
-                                background: 'white',
-                                border: '1px solid #e0e0e0',
-                                borderRadius: '6px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                zIndex: 1000
-                            }}
-                        >
-                            {filteredDestinations.map((dest, index) => (
-                                <div
-                                    key={index}
-                                    onClick={() => handleLocationSelect(dest)}
-                                    style={{
-                                        padding: '10px 12px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        borderBottom: index < filteredDestinations.length - 1 ? '1px solid #f0f0f0' : 'none'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                                >
-                                    {dest}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </>
+    const toolbar = (deps: Record<string, any>) => (
+        <LocationToolbar
+            deps={{
+                undo: deps.undo || (() => {}),
+                redo: deps.redo || (() => {}),
+                saveToHistory: deps.saveToHistory || (() => {}),
+                canUndo: deps.historyStep > 0,
+                canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+            }}
+            pinColor={pinColor}
+            setPinColor={setPinColor}
+            pinLocation={pinLocation}
+            filteredDestinations={filteredDestinations}
+            showSuggestions={showSuggestions}
+            setShowSuggestions={setShowSuggestions}
+            onLocationSelect={handleLocationSelect}
+            onLocationChange={handleLocationChange}
+            onAddLocation={handleAddLocation}
+            inputRef={inputRef}
+        />
     )
 
     return {
         toolbar,
-        cursor: hoverPinIndex !== null ? 'move' : 'crosshair',
+        cursor: isAddMode ? 'crosshair' : hoverPinIndex !== null ? 'move' : 'crosshair',
         onMouseDown,
         onMouseMove,
         onMouseUp,

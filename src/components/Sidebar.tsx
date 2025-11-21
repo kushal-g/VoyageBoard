@@ -4,7 +4,6 @@ import { IonIcon } from '@ionic/react'
 import {
   locationOutline,
   mapOutline,
-  createOutline,
   layersOutline,
   searchOutline,
 } from 'ionicons/icons'
