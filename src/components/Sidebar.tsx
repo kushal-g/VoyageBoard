@@ -8,7 +8,6 @@ import {
   layersOutline,
   searchOutline,
   brushOutline,
-  textOutline,
 } from 'ionicons/icons'
 
 type SidebarProps = {
@@ -62,15 +61,6 @@ export default function Sidebar({ currentTool, setCurrentTool, isOpen = false }:
         >
           <IonIcon icon={brushOutline} className="menu-icon" />
           <span className="menu-label">Eraser</span>
-        </button>
-
-        <button
-          className={`menu-item ${currentTool === 'TEXT' ? 'selected' : ''}`}
-          onClick={() => setCurrentTool && setCurrentTool('TEXT')}
-          aria-label="Text"
-        >
-          <IonIcon icon={textOutline} className="menu-icon" />
-          <span className="menu-label">Text</span>
         </button>
 
         <button

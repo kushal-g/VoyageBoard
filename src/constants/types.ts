@@ -1,1 +1,1 @@
-export type TOOL = "DOODLE" | "ERASER" | "TEXT" | "LOCATION_PIN" | "TRANSIT" | "GROUP"
+export type TOOL = "DOODLE" | "ERASER" | "LOCATION_PIN" | "TRANSIT" | "GROUP"
