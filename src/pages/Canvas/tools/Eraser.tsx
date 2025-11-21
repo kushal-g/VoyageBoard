@@ -40,8 +40,7 @@ export const useEraserTool = (): CanvasTool => {
 
         const { x, y } = getCoordinates(canvasRef, e)
 
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.strokeStyle = '#ffffff'
+        ctx.globalCompositeOperation = 'destination-out'
         ctx.lineWidth = eraserSize
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'

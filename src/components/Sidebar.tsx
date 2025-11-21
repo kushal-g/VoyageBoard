@@ -8,16 +8,18 @@ import {
   layersOutline,
   searchOutline,
   brushOutline,
+  textOutline,
 } from 'ionicons/icons'
 
 type SidebarProps = {
   currentTool?: TOOL
   setCurrentTool?: (tool: TOOL) => void
+  isOpen?: boolean
 }
 
-export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
+export default function Sidebar({ currentTool, setCurrentTool, isOpen = false }: SidebarProps) {
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="search-container">
         <div className="search-bar">
           <IonIcon icon={searchOutline} className="search-icon" />
@@ -60,6 +62,15 @@ export default function Sidebar({ currentTool, setCurrentTool }: SidebarProps) {
         >
           <IonIcon icon={brushOutline} className="menu-icon" />
           <span className="menu-label">Eraser</span>
+        </button>
+
+        <button
+          className={`menu-item ${currentTool === 'TEXT' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('TEXT')}
+          aria-label="Text"
+        >
+          <IonIcon icon={textOutline} className="menu-icon" />
+          <span className="menu-label">Text</span>
         </button>
 
         <button

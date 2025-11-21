@@ -6,6 +6,7 @@ import { useEraserTool } from './tools/Eraser'
 import { useLocationTool } from './tools/Location'
 import { useTransitTool } from './tools/Transit'
 import { useGroupLocationTool } from './tools/GroupLocation'
+import { useTextTool, type TextElement } from './tools/Text'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -23,6 +24,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
     const [history, setHistory] = useState<ImageData[]>([])
     const [historyStep, setHistoryStep] = useState(-1)
     const [pins, setPins] = useState<LocationPin[]>([])
+    const [texts, setTexts] = useState<TextElement[]>([])
 
     // Tool instances
     const doodleTool = useDoodleTool()
@@ -30,6 +32,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
     const locationTool = useLocationTool(pins, setPins)
     const transitTool = useTransitTool(pins)
     const groupLocationTool = useGroupLocationTool(pins, setPins)
+    const textTool = useTextTool(texts, setTexts)
 
     // Map of tools
     const tools = {
@@ -38,6 +41,7 @@ export default function Canvas({ currentTool }: CanvasProps) {
         LOCATION_PIN: locationTool,
         TRANSIT: transitTool,
         GROUP: groupLocationTool,
+        TEXT: textTool,
         // Add more tools here as they are implemented
     }
 

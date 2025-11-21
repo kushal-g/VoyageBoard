@@ -29,7 +29,31 @@ const HomePage = () => {
       subtitle: 'Canvas',
       lastEdited: new Date(),
     }
+    
+    // Save to localStorage
+    localStorage.setItem(`canvas_${newBoard.id}_name`, newBoard.name)
+    localStorage.setItem(`canvas_${newBoard.id}_lastEdited`, newBoard.lastEdited.toISOString())
+    
     setTripBoards([...tripBoards, newBoard])
+  }
+
+  // Load canvas names from localStorage when displaying
+  const getCanvasName = (trip: TripBoard): string => {
+    const storedName = localStorage.getItem(`canvas_${trip.id}_name`)
+    return storedName || trip.name
+  }
+
+  // Load last edited from localStorage when displaying
+  const getLastEdited = (trip: TripBoard): Date => {
+    const storedLastEdited = localStorage.getItem(`canvas_${trip.id}_lastEdited`)
+    if (storedLastEdited) {
+      try {
+        return new Date(storedLastEdited)
+      } catch {
+        return trip.lastEdited || new Date()
+      }
+    }
+    return trip.lastEdited || new Date()
   }
 
   const openBoardActions = (trip: TripBoard) => {
@@ -58,11 +82,18 @@ const HomePage = () => {
     if (!board) return
 
     const newName = window.prompt("Enter a new name:", board.name)
-    if (!newName) return closeActionSheet()
+    if (!newName || newName.trim() === '') return closeActionSheet()
+
+    const updatedName = newName.trim()
+    const updatedBoard = { ...board, name: updatedName, lastEdited: new Date() }
+    
+    // Save to localStorage
+    localStorage.setItem(`canvas_${activeBoardId}_name`, updatedName)
+    localStorage.setItem(`canvas_${activeBoardId}_lastEdited`, new Date().toISOString())
 
     setTripBoards((prev) =>
       prev.map((b) =>
-        b.id === activeBoardId ? { ...b, name: newName } : b
+        b.id === activeBoardId ? updatedBoard : b
       )
     )
     closeActionSheet()
@@ -134,8 +165,8 @@ const HomePage = () => {
                       <IonIcon icon={ellipsisVertical} />
                     </IonButton>
                     <div className="trip-card-overlay">
-                      <h3 className="trip-card-title">{trip.name}</h3>
-                      <p className="trip-card-subtitle">Last Edited: {formatDate(trip.lastEdited)}</p>
+                      <h3 className="trip-card-title">{getCanvasName(trip)}</h3>
+                      <p className="trip-card-subtitle">Last Edited: {formatDate(getLastEdited(trip))}</p>
                     </div>
                   </div>
                 </IonCard>
