@@ -35,6 +35,64 @@
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
+/* Global Canvas Toolbar */
+.canvas-global-toolbar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+}
+
+.toolbar-floating {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 4px;
+    display: inline-flex;
+}
+
+.toolbar-group-container {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.button-icon {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.button-icon:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.button-icon:active:not(:disabled) {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.button-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.button-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
 .toolbar {
     position: fixed;
     bottom: 20px;
