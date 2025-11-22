@@ -19,6 +19,8 @@ import "./CanvasPage.css";
 
 import Canvas from "./Canvas/Canvas";
 import type { TOOL } from "../constants/types";
+import type { LocationGroup, LocationPin } from "./Canvas/Canvas";
+import CalendarSidebar from "../components/CalendarSidebar/CalendarSidebar";
 
 // Sidebar Component
 import Sidebar from "../components/Sidebar";
@@ -32,9 +34,12 @@ interface CanvasPageProps {
 export default function CanvasPage(props: CanvasPageProps) {
   const [currentTool, setCurrentTool] = useState<TOOL>("DOODLE");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tripName, setTripName] = useState<string>("");
   const [lastEdited, setLastEdited] = useState<string>("");
+  const [groups, setGroups] = useState<LocationGroup[]>([]);
+  const [pins, setPins] = useState<LocationPin[]>([]);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const historyRouter = useHistory();
 
@@ -201,7 +206,7 @@ export default function CanvasPage(props: CanvasPageProps) {
         </IonTitle>
 
         <IonButtons slot="end">
-          <IonButton>
+          <IonButton onClick={() => setIsCalendarOpen((prev) => !prev)}>
             <IonIcon icon={calendarOutline} />
           </IonButton>
 
@@ -212,8 +217,40 @@ export default function CanvasPage(props: CanvasPageProps) {
       </IonToolbar>
 
       <IonContent className="canvas-content">
-        <Canvas currentTool={currentTool} />
+        <Canvas 
+          currentTool={currentTool} 
+          onGroupsChange={setGroups}
+          onPinsChange={setPins}
+          onDeleteGroup={(groupId) => {
+            // Delete group - Canvas will handle actual deletion via tool
+            setGroups(prev => prev.filter(g => g.id !== groupId))
+          }}
+          onUpdateGroupLabel={(groupId, newLabel) => {
+            // Update group label - Canvas will handle actual update via tool
+            setGroups(prev => prev.map(g => 
+              g.id === groupId ? { ...g, label: newLabel } : g
+            ))
+          }}
+        />
       </IonContent>
+
+      {/* Calendar Sidebar */}
+      <CalendarSidebar
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        groups={groups}
+        pins={pins}
+        onDeleteGroup={(groupId) => {
+          // Trigger deletion - will be handled by Canvas via onDeleteGroup prop
+          setGroups(prev => prev.filter(g => g.id !== groupId))
+        }}
+        onUpdateGroupLabel={(groupId, newLabel) => {
+          // Trigger update - will be handled by Canvas via onUpdateGroupLabel prop
+          setGroups(prev => prev.map(g => 
+            g.id === groupId ? { ...g, label: newLabel } : g
+          ))
+        }}
+      />
     </IonPage>
   );
 }

@@ -161,10 +161,10 @@ export default function GroupToolbar({
             onClick={onCreateGroup}
             disabled={selectedPinCount === 0}
             className="create-group-button"
-            aria-label="Create Group"
+            aria-label="Group Locations"
           >
             <LayersIcon />
-            <span>Create Group ({selectedPinCount})</span>
+            <span>Group Locations ({selectedPinCount})</span>
           </Button>
         </ToolbarGroup>
 

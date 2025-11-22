@@ -6,11 +6,31 @@ interface Point {
     y: number
 }
 
-export const useEraserTool = (): CanvasTool => {
+interface EraserToolProps {
+    pins?: Array<{ x: number; y: number; id: number }>
+}
+
+export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>): CanvasTool => {
     const [eraserSize, setEraserSize] = useState(20)
     const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
     const [isVisible, setIsVisible] = useState(false)
     const isErasingRef = useRef(false)
+
+    // Check if point is near a location flag (within clickable radius)
+    const isNearLocation = (x: number, y: number): boolean => {
+        if (!pins || pins.length === 0) return false
+        const clickRadius = 35 // Account for flag + badge area
+
+        for (const pin of pins) {
+            const dx = x - pin.x
+            const dy = y - pin.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            if (distance <= clickRadius) {
+                return true
+            }
+        }
+        return false
+    }
 
     const getCoordinates = (
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -39,6 +59,11 @@ export const useEraserTool = (): CanvasTool => {
         if (!ctx) return
 
         const { x, y } = getCoordinates(canvasRef, e)
+
+        // Don't erase if clicking on a location flag/badge
+        if (isNearLocation(x, y)) {
+            return
+        }
 
         ctx.globalCompositeOperation = 'destination-out'
         ctx.lineWidth = eraserSize
@@ -71,6 +96,11 @@ export const useEraserTool = (): CanvasTool => {
 
         const ctx = canvas.getContext('2d')
         if (!ctx) return
+
+        // Don't erase if hovering over a location flag/badge
+        if (isNearLocation(x, y)) {
+            return
+        }
 
         ctx.lineTo(x, y)
         ctx.stroke()

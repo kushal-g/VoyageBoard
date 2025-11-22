@@ -46,7 +46,7 @@ export const useLocationTool = (
     pins: LocationPin[],
     setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>
 ): CanvasTool => {
-    const [pinColor, setPinColor] = useState('#FF0000')
+    const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [filteredDestinations, setFilteredDestinations] = useState<string[]>([])
@@ -522,8 +522,6 @@ export const useLocationTool = (
                 canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
                 canvasRef: deps.canvasRef,
             }}
-            pinColor={pinColor}
-            setPinColor={setPinColor}
             pinLocation={pinLocation}
             filteredDestinations={filteredDestinations}
             showSuggestions={showSuggestions}

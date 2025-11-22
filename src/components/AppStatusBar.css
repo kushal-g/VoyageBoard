@@ -1,13 +1,14 @@
 .status-bar {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  bottom: 5px;
+  left: 10px;
+  right: 10px;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 14px;
+  padding: 5px 14px;
   z-index: 1100;
   pointer-events: none; /* non-interactive; icons are decorative */
   background: transparent;

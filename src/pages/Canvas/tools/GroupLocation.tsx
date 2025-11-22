@@ -1,14 +1,7 @@
 import { useState, useRef } from 'react'
 import type { CanvasTool } from '../types'
-import type { LocationPin } from '../Canvas'
+import type { LocationPin, LocationGroup } from '../Canvas'
 import GroupToolbar from '@/components/GroupToolbar/GroupToolbar'
-
-interface LocationGroup {
-    id: string
-    color: string
-    label: string
-    pinIds: number[]
-}
 
 interface Point {
     x: number
@@ -17,10 +10,11 @@ interface Point {
 
 export const useGroupLocationTool = (
     pins: LocationPin[],
-    _setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>
+    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
+    groups: LocationGroup[],
+    setGroups: React.Dispatch<React.SetStateAction<LocationGroup[]>>
 ): CanvasTool => {
-    const [groups, setGroups] = useState<LocationGroup[]>([])
-    const [currentGroupColor, setCurrentGroupColor] = useState('#FFD700') // Gold default
+    const [currentGroupColor, setCurrentGroupColor] = useState('#007AFF') // Default blue color
     const [currentGroupLabel, setCurrentGroupLabel] = useState('')
     const [selectedPinIds, setSelectedPinIds] = useState<Set<number>>(new Set())
     const [hoverPinIndex, setHoverPinIndex] = useState<number | null>(null)
@@ -43,12 +37,13 @@ export const useGroupLocationTool = (
         }
     }
 
-    // Check if a point is near a pin (within clickable radius)
+    // Check if a point is near a location flag (within clickable radius)
     const findPinAtPosition = (x: number, y: number): number | null => {
-        const clickRadius = 20
+        const clickRadius = 30 // Match flag icon size
 
         for (let i = pins.length - 1; i >= 0; i--) {
             const pin = pins[i]
+            // Check distance from flag pole position
             const dx = x - pin.x
             const dy = y - pin.y
             const distance = Math.sqrt(dx * dx + dy * dy)
@@ -77,7 +72,7 @@ export const useGroupLocationTool = (
             const alpha = 0.15 - (i * 0.03)
 
             ctx.beginPath()
-            ctx.arc(x, y - 15, radius, 0, Math.PI * 2)
+            ctx.arc(x, y, radius, 0, Math.PI * 2) // Match flag pole position
             ctx.fillStyle = `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`
             ctx.fill()
         }
@@ -124,20 +119,29 @@ export const useGroupLocationTool = (
         const newGroup: LocationGroup = {
             id: Date.now().toString(),
             color: currentGroupColor,
-            label: currentGroupLabel || `Group ${groups.length + 1}`,
+            label: currentGroupLabel || `Day ${groups.length + 1}`,
             pinIds: Array.from(selectedPinIds)
         }
+
+        // Update pin colors to match group color
+        setPins(prev => prev.map(pin => {
+            if (selectedPinIds.has(pin.id)) {
+                return { ...pin, color: currentGroupColor, groupId: newGroup.id }
+            }
+            return pin
+        }))
 
         setGroups(prev => [...prev, newGroup])
         setActiveGroupId(newGroup.id)
         setSelectedPinIds(new Set())
         setCurrentGroupLabel('')
 
-        // Update base canvas state to include the newly created group's glow
+        // Redraw canvas with updated colors
         setTimeout(() => {
             if (canvasRef.current) {
                 const ctx = canvasRef.current.getContext('2d')
                 if (ctx) {
+                    // Canvas redraw will be handled by Location tool's useEffect when pins change
                     baseCanvasState.current = ctx.getImageData(
                         0, 0,
                         canvasRef.current.width,
@@ -149,6 +153,22 @@ export const useGroupLocationTool = (
     }
 
     const deleteGroup = (groupId: string) => {
+        const groupToDelete = groups.find(g => g.id === groupId)
+        
+        // Reset pin colors to default gray when group is deleted
+        if (groupToDelete) {
+            setPins(prev => prev.map(pin => {
+                if (groupToDelete.pinIds.includes(pin.id)) {
+                    return { 
+                        ...pin, 
+                        color: '#808080', // Reset to default gray
+                        groupId: undefined
+                    } as LocationPin & { color?: string; groupId?: string }
+                }
+                return pin
+            }))
+        }
+
         setGroups(prev => prev.filter(g => g.id !== groupId))
         if (activeGroupId === groupId) {
             setActiveGroupId(null)
@@ -259,28 +279,45 @@ export const useGroupLocationTool = (
         setHoverPinIndex(null)
     }
 
-    const toolbar = (deps: Record<string, any>) => (
-        <GroupToolbar
-            deps={{
-                undo: deps.undo || (() => {}),
-                redo: deps.redo || (() => {}),
-                saveToHistory: deps.saveToHistory || (() => {}),
-                canUndo: deps.historyStep > 0,
-                canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
-            }}
-            groupColor={currentGroupColor}
-            setGroupColor={setCurrentGroupColor}
-            groupLabel={currentGroupLabel}
-            setGroupLabel={setCurrentGroupLabel}
-            selectedPinCount={selectedPinIds.size}
-            onCreateGroup={createGroup}
-            groups={groups}
-            activeGroupId={activeGroupId}
-            onUpdateGroupLabel={updateGroupLabel}
-            onDeleteGroup={deleteGroup}
-            onSetActiveGroup={setActiveGroupId}
-        />
-    )
+    const toolbar = (deps: Record<string, any>) => {
+        // Expose delete and update handlers that call both local and parent handlers
+        const handleDeleteGroup = (groupId: string) => {
+            deleteGroup(groupId)
+            if (deps.onDeleteGroup) {
+                deps.onDeleteGroup(groupId)
+            }
+        }
+
+        const handleUpdateGroupLabel = (groupId: string, newLabel: string) => {
+            updateGroupLabel(groupId, newLabel)
+            if (deps.onUpdateGroupLabel) {
+                deps.onUpdateGroupLabel(groupId, newLabel)
+            }
+        }
+
+        return (
+            <GroupToolbar
+                deps={{
+                    undo: deps.undo || (() => {}),
+                    redo: deps.redo || (() => {}),
+                    saveToHistory: deps.saveToHistory || (() => {}),
+                    canUndo: deps.historyStep > 0,
+                    canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+                }}
+                groupColor={currentGroupColor}
+                setGroupColor={setCurrentGroupColor}
+                groupLabel={currentGroupLabel}
+                setGroupLabel={setCurrentGroupLabel}
+                selectedPinCount={selectedPinIds.size}
+                onCreateGroup={createGroup}
+                groups={groups}
+                activeGroupId={activeGroupId}
+                onUpdateGroupLabel={handleUpdateGroupLabel}
+                onDeleteGroup={handleDeleteGroup}
+                onSetActiveGroup={setActiveGroupId}
+            />
+        )
+    }
 
     return {
         toolbar,

@@ -9,6 +9,10 @@ import { useGroupLocationTool } from './tools/GroupLocation'
 
 interface CanvasProps {
     currentTool: TOOL
+    onGroupsChange?: (groups: LocationGroup[]) => void
+    onPinsChange?: (pins: LocationPin[]) => void
+    onDeleteGroup?: (groupId: string) => void
+    onUpdateGroupLabel?: (groupId: string, newLabel: string) => void
 }
 
 export interface LocationPin {
@@ -16,20 +20,43 @@ export interface LocationPin {
     y: number
     id: number
     location: string
+    color?: string
+    groupId?: string
 }
 
-export default function Canvas({ currentTool }: CanvasProps) {
+export interface LocationGroup {
+    id: string
+    color: string
+    label: string
+    pinIds: number[]
+}
+
+export default function Canvas({ currentTool, onGroupsChange, onPinsChange, onDeleteGroup, onUpdateGroupLabel }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [history, setHistory] = useState<ImageData[]>([])
     const [historyStep, setHistoryStep] = useState(-1)
     const [pins, setPins] = useState<LocationPin[]>([])
+    const [groups, setGroups] = useState<LocationGroup[]>([])
+
+    // Notify parent of changes
+    useEffect(() => {
+        if (onGroupsChange) {
+            onGroupsChange(groups)
+        }
+    }, [groups, onGroupsChange])
+
+    useEffect(() => {
+        if (onPinsChange) {
+            onPinsChange(pins)
+        }
+    }, [pins, onPinsChange])
 
     // Tool instances
     const doodleTool = useDoodleTool()
-    const eraserTool = useEraserTool()
+    const eraserTool = useEraserTool(pins) // Pass pins to eraser to check for locations
     const locationTool = useLocationTool(pins, setPins)
     const transitTool = useTransitTool(pins)
-    const groupLocationTool = useGroupLocationTool(pins, setPins)
+    const groupLocationTool = useGroupLocationTool(pins, setPins, groups, setGroups)
 
     // Map of tools
     const tools = {
@@ -190,6 +217,8 @@ export default function Canvas({ currentTool }: CanvasProps) {
         historyStep,
         history,
         canvasRef, // Pass canvas ref to tools
+        groups, // Pass groups to tools
+        setGroups, // Pass setGroups to tools
     }
 
     return (

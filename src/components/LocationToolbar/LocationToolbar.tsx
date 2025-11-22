@@ -18,8 +18,6 @@ interface LocationToolbarDeps {
 
 interface LocationToolbarProps {
   deps: LocationToolbarDeps
-  pinColor: string
-  setPinColor: (color: string) => void
   pinLocation: string
   filteredDestinations: string[]
   showSuggestions: boolean
@@ -34,8 +32,6 @@ interface LocationToolbarProps {
 
 export default function LocationToolbar({
   deps,
-  pinColor,
-  setPinColor,
   pinLocation,
   filteredDestinations,
   showSuggestions,
@@ -47,29 +43,23 @@ export default function LocationToolbar({
   isSelectMode,
   onSelectModeToggle,
 }: LocationToolbarProps) {
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  
-  const colorPickerRef = useRef<HTMLDivElement>(null)
   const locationInputRef = useRef<HTMLDivElement>(null)
 
   // Close popovers when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
-        setShowColorPicker(false)
-      }
       if (locationInputRef.current && !locationInputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false)
       }
     }
 
-    if (showColorPicker || showSuggestions) {
+    if (showSuggestions) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [showColorPicker, showSuggestions, setShowSuggestions])
+  }, [showSuggestions, setShowSuggestions])
 
   return (
     <div className="location-toolbar-container">
@@ -176,37 +166,6 @@ export default function LocationToolbar({
             <LocationPinIcon />
             <span>Add Location</span>
           </Button>
-        </ToolbarGroup>
-
-        {/* Group 4: Color Picker */}
-        <ToolbarGroup className="toolbar-group">
-          <div className="control-button-wrapper" ref={colorPickerRef}>
-            <Button
-              data-style="ghost"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              className="control-button"
-              aria-label="Pin Color"
-            >
-              <span>Color:</span>
-              <div 
-                className="color-indicator" 
-                style={{ backgroundColor: pinColor }}
-              />
-            </Button>
-            {showColorPicker && (
-              <div className="popover">
-                <input
-                  type="color"
-                  value={pinColor}
-                  onChange={(e) => {
-                    setPinColor(e.target.value)
-                    setShowColorPicker(false)
-                  }}
-                  className="color-picker-input"
-                />
-              </div>
-            )}
-          </div>
         </ToolbarGroup>
       </Toolbar>
     </div>
