@@ -42,17 +42,22 @@
 
 .idea-dump-page .id-content {
   background: white;
+  --padding-top: 0;
+  --padding-bottom: 0;
 }
 
 .idea-dump-page .empty-state {
-  min-height: calc(100vh - 88px);
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 0 32px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
 
 .idea-dump-page .empty-state p {
   margin: 4px 0;
