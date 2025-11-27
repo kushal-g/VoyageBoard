@@ -201,6 +201,226 @@
       "description": "Google Maps Places API endpoints for autocomplete and place details"
     },
     {
+      "name": "Routes & Distance",
+      "item": [
+        {
+          "name": "Get Routes - Drive",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/routes?origin=ChIJOwg_06VPwokRYv534QaPC8g&destination=ChIJD7fiBh9u5kcRYJSMaMOCCwQ&travelMode=DRIVE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "routes"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "ChIJOwg_06VPwokRYv534QaPC8g",
+                  "description": "Origin place ID (NYC) or lat,lng"
+                },
+                {
+                  "key": "destination",
+                  "value": "ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+                  "description": "Destination place ID (Paris) or lat,lng"
+                },
+                {
+                  "key": "travelMode",
+                  "value": "DRIVE",
+                  "description": "DRIVE, WALK, BICYCLE, TRANSIT, TWO_WHEELER"
+                }
+              ]
+            },
+            "description": "Get routes and distance between New York and Paris by car"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Routes - Walk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/routes?origin=40.7128,-74.0060&destination=40.7589,-73.9851&travelMode=WALK",
+              "host": ["{{base_url}}"],
+              "path": ["api", "routes"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "40.7128,-74.0060",
+                  "description": "NYC coordinates"
+                },
+                {
+                  "key": "destination",
+                  "value": "40.7589,-73.9851",
+                  "description": "Times Square coordinates"
+                },
+                {
+                  "key": "travelMode",
+                  "value": "WALK"
+                }
+              ]
+            },
+            "description": "Walking directions using coordinates"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Routes - Transit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/routes?origin=40.7128,-74.0060&destination=40.7589,-73.9851&travelMode=TRANSIT",
+              "host": ["{{base_url}}"],
+              "path": ["api", "routes"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "40.7128,-74.0060"
+                },
+                {
+                  "key": "destination",
+                  "value": "40.7589,-73.9851"
+                },
+                {
+                  "key": "travelMode",
+                  "value": "TRANSIT",
+                  "description": "Public transit options"
+                }
+              ]
+            },
+            "description": "Get public transit options"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Routes - Bicycle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/routes?origin=40.7128,-74.0060&destination=40.7589,-73.9851&travelMode=BICYCLE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "routes"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "40.7128,-74.0060"
+                },
+                {
+                  "key": "destination",
+                  "value": "40.7589,-73.9851"
+                },
+                {
+                  "key": "travelMode",
+                  "value": "BICYCLE"
+                }
+              ]
+            },
+            "description": "Get bicycle routes"
+          },
+          "response": []
+        },
+        {
+          "name": "Distance Matrix",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origins\": [\n    \"40.7128,-74.0060\",\n    \"40.7589,-73.9851\"\n  ],\n  \"destinations\": [\n    \"40.7614,-73.9776\",\n    \"40.7831,-73.9712\"\n  ],\n  \"travelMode\": \"DRIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/distance-matrix",
+              "host": ["{{base_url}}"],
+              "path": ["api", "distance-matrix"]
+            },
+            "description": "Calculate distance matrix between multiple origins and destinations"
+          },
+          "response": []
+        }
+      ],
+      "description": "Routes, distance, and transit information between places"
+    },
+    {
+      "name": "Combined Travel Search",
+      "item": [
+        {
+          "name": "Search All Travel Options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/search?origin=New York&destination=Boston",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "search"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "New York",
+                  "description": "Origin city or place ID"
+                },
+                {
+                  "key": "destination",
+                  "value": "Boston",
+                  "description": "Destination city or place ID"
+                }
+              ]
+            },
+            "description": "Get all travel options (trains, buses, driving) combined in one response"
+          },
+          "response": []
+        },
+        {
+          "name": "Search with Custom Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/search?origin=40.7128,-74.0060&destination=42.3601,-71.0589&includeTransit=true&includeDriving=true&includeWalking=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "search"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "40.7128,-74.0060",
+                  "description": "NYC coordinates"
+                },
+                {
+                  "key": "destination",
+                  "value": "42.3601,-71.0589",
+                  "description": "Boston coordinates"
+                },
+                {
+                  "key": "includeTransit",
+                  "value": "true",
+                  "description": "Include trains and buses"
+                },
+                {
+                  "key": "includeDriving",
+                  "value": "true",
+                  "description": "Include driving directions"
+                },
+                {
+                  "key": "includeWalking",
+                  "value": "true",
+                  "description": "Include walking directions"
+                }
+              ]
+            },
+            "description": "Search with custom filters for specific travel modes"
+          },
+          "response": []
+        }
+      ],
+      "description": "Combined travel search - get all options (trains, buses, driving) in one API call"
+    },
+    {
       "name": "Usage Statistics",
       "item": [
         {
@@ -291,6 +511,150 @@
       "description": "API usage statistics and monitoring endpoints"
     },
     {
+      "name": "Web Scraping",
+      "item": [
+        {
+          "name": "Scrape Website - Basic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com\",\n  \"extractPlaces\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Scrape a website using headless browser. Returns fully rendered HTML and parsed content (title, headings, links, images, text)."
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape Travel Blog - Extract Places",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/travel-blog\",\n  \"extractPlaces\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Scrape a travel blog and use Claude AI to extract all places, destinations, and attractions mentioned. When Google Maps API key is configured, each extracted place is automatically enriched with placeId, coordinates (latitude/longitude), and formattedAddress from Google Maps. Returns structured list of places with names, descriptions, types, locations, and Google Maps data."
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape Website - With Wait Selector",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com\",\n  \"waitForSelector\": \"#content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Scrape a website and wait for a specific CSS selector to appear before extracting data. Useful for sites with dynamic content loading."
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape News Website",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://news.ycombinator.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Example: Scrape Hacker News homepage"
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape Wikipedia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://en.wikipedia.org/wiki/Web_scraping\",\n  \"extractPlaces\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Example: Scrape Wikipedia article on web scraping"
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape Travel Blog - Full Example",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://www.nomadicmatt.com/travel-blogs/\",\n  \"extractPlaces\": true,\n  \"waitForSelector\": \"article\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Full example: Scrape a travel blog, wait for content to load, and extract all recommended places using Claude AI"
+          },
+          "response": []
+        }
+      ],
+      "description": "Web scraping endpoint using Puppeteer headless browser to render JavaScript and extract content"
+    },
+    {
       "name": "Error Handling",
       "item": [
         {
@@ -318,6 +682,52 @@
               "path": ["api", "places", "details", "invalid_place_id_12345"]
             },
             "description": "Test error handling with an invalid place ID (should return 500 with error details)"
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape - Missing URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Test error handling when URL is missing (should return 400)"
+          },
+          "response": []
+        },
+        {
+          "name": "Scrape - Invalid URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"not-a-valid-url\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/scrape",
+              "host": ["{{base_url}}"],
+              "path": ["api", "scrape"]
+            },
+            "description": "Test error handling with invalid URL format (should return 400)"
           },
           "response": []
         }

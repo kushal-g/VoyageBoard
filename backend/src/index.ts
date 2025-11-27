@@ -1,8 +1,10 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { getPlaceAutocomplete, getPlaceDetails } from './services/googleMaps';
+import { getPlaceAutocomplete, getPlaceDetails, getRoutes, getDistanceMatrix } from './services/googleMaps';
 import { usageStatsService } from './services/usageStats';
+import { searchAllTravelOptions } from './services/travelSearch';
+import { scrapeWebsite } from './services/webScraper';
 
 dotenv.config();
 
@@ -140,6 +142,46 @@ app.post('/api/stats/reset', (_req: Request, res: Response): void => {
     console.error('Stats reset error:', error);
     res.status(500).json({
       error: 'Failed to reset usage statistics',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Web scraping endpoint
+app.post('/api/scrape', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { url, waitForSelector, extractPlaces } = req.body;
+
+    if (!url || typeof url !== 'string') {
+      res.status(400).json({
+        error: 'Missing or invalid "url" in request body',
+      });
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      res.status(400).json({
+        error: 'Invalid URL format',
+      });
+      return;
+    }
+
+    // Get Google Maps API key if extractPlaces is true
+    const googleMapsApiKey = extractPlaces ? process.env.GOOGLE_MAPS_API_KEY : undefined;
+
+    if (extractPlaces && !googleMapsApiKey) {
+      console.warn('Google Maps API key not configured. Places will be extracted without Google Maps enrichment.');
+    }
+
+    const scrapedData = await scrapeWebsite(url, waitForSelector, extractPlaces, googleMapsApiKey);
+    res.json(scrapedData);
+  } catch (error) {
+    console.error('Web scraping error:', error);
+    res.status(500).json({
+      error: 'Failed to scrape website',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
