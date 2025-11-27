@@ -1,6 +1,6 @@
 import { IonPage, IonContent, IonIcon, IonCard, IonButton, IonActionSheet } from '@ionic/react'
 import { calendarClearOutline, add, ellipsisVertical, trash, shareSocial, image, pencil } from 'ionicons/icons'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
 import AppStatusBar from '../components/AppStatusBar'
 import './HomePage.css'
@@ -14,46 +14,56 @@ interface TripBoard {
   lastEdited?: Date
 }
 
+const STORAGE_KEY = 'voyageboard.tripBoards'
+
 const HomePage = () => {
-  const [tripBoards, setTripBoards] = useState<TripBoard[]>([])
+  const [tripBoards, setTripBoards] = useState<TripBoard[]>(() => {
+    if (typeof window === 'undefined') return []
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return []
+    try {
+      const parsed = JSON.parse(saved) as {
+        id: string
+        name: string
+        createdAt: string
+        coverImage?: string
+        subtitle?: string
+        lastEdited?: string
+      }[]
+      return parsed.map(b => ({
+        ...b,
+        createdAt: new Date(b.createdAt),
+        lastEdited: b.lastEdited ? new Date(b.lastEdited) : undefined,
+      }))
+    } catch {
+      return []
+    }
+  })
+
   const [actionSheetOpen, setActionSheetOpen] = useState(false)
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null)
   const history = useHistory()
 
+  useEffect(() => {
+    const serializable = tripBoards.map(b => ({
+      ...b,
+      createdAt: b.createdAt.toISOString(),
+      lastEdited: b.lastEdited ? b.lastEdited.toISOString() : undefined,
+    }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
+  }, [tripBoards])
+
   const createNewTripboard = () => {
+    const now = new Date()
     const newBoard: TripBoard = {
       id: Date.now().toString(),
       name: `Canvas ${tripBoards.length + 1}`,
-      createdAt: new Date(),
+      createdAt: now,
       coverImage: 'https://ionicframework.com/docs/img/demos/card-media.png',
       subtitle: 'Canvas',
-      lastEdited: new Date(),
+      lastEdited: now,
     }
-    
-    // Save to localStorage
-    localStorage.setItem(`canvas_${newBoard.id}_name`, newBoard.name)
-    localStorage.setItem(`canvas_${newBoard.id}_lastEdited`, newBoard.lastEdited.toISOString())
-    
-    setTripBoards([...tripBoards, newBoard])
-  }
-
-  // Load canvas names from localStorage when displaying
-  const getCanvasName = (trip: TripBoard): string => {
-    const storedName = localStorage.getItem(`canvas_${trip.id}_name`)
-    return storedName || trip.name
-  }
-
-  // Load last edited from localStorage when displaying
-  const getLastEdited = (trip: TripBoard): Date => {
-    const storedLastEdited = localStorage.getItem(`canvas_${trip.id}_lastEdited`)
-    if (storedLastEdited) {
-      try {
-        return new Date(storedLastEdited)
-      } catch {
-        return trip.lastEdited || new Date()
-      }
-    }
-    return trip.lastEdited || new Date()
+    setTripBoards(prev => [...prev, newBoard])
   }
 
   const openBoardActions = (trip: TripBoard) => {
@@ -73,39 +83,36 @@ const HomePage = () => {
 
   const handleDelete = () => {
     if (!activeBoardId) return
-    setTripBoards((prev) => prev.filter((b) => b.id !== activeBoardId))
+    setTripBoards(prev => prev.filter(b => b.id !== activeBoardId))
     closeActionSheet()
   }
 
   const handleRename = () => {
-    const board = tripBoards.find((b) => b.id === activeBoardId)
+    const board = tripBoards.find(b => b.id === activeBoardId)
     if (!board) return
 
-    const newName = window.prompt("Enter a new name:", board.name)
-    if (!newName || newName.trim() === '') return closeActionSheet()
+    const newName = window.prompt('Enter a new name:', board.name)
+    if (!newName || newName.trim() === '') {
+      closeActionSheet()
+      return
+    }
 
     const updatedName = newName.trim()
-    const updatedBoard = { ...board, name: updatedName, lastEdited: new Date() }
-    
-    // Save to localStorage
-    localStorage.setItem(`canvas_${activeBoardId}_name`, updatedName)
-    localStorage.setItem(`canvas_${activeBoardId}_lastEdited`, new Date().toISOString())
+    const updatedBoard: TripBoard = { ...board, name: updatedName, lastEdited: new Date() }
 
-    setTripBoards((prev) =>
-      prev.map((b) =>
-        b.id === activeBoardId ? updatedBoard : b
-      )
+    setTripBoards(prev =>
+      prev.map(b => (b.id === activeBoardId ? updatedBoard : b))
     )
     closeActionSheet()
   }
 
   const handleShare = async () => {
-    const board = tripBoards.find((b) => b.id === activeBoardId)
+    const board = tripBoards.find(b => b.id === activeBoardId)
     if (!board) return
 
     const shareData = {
       title: board.name,
-      text: `Check out my tripboard: ${board.name}`
+      text: `Check out my tripboard: ${board.name}`,
     }
 
     if ((navigator as any).share) {
@@ -122,12 +129,13 @@ const HomePage = () => {
 
   const handleChangeCover = () => {
     const url = window.prompt('Enter image URL for cover:')
-    if (!url || !activeBoardId) return closeActionSheet()
+    if (!url || !activeBoardId) {
+      closeActionSheet()
+      return
+    }
 
-    setTripBoards((prev) =>
-      prev.map((b) =>
-        b.id === activeBoardId ? { ...b, coverImage: url } : b
-      )
+    setTripBoards(prev =>
+      prev.map(b => (b.id === activeBoardId ? { ...b, coverImage: url } : b))
     )
     closeActionSheet()
   }
@@ -143,7 +151,12 @@ const HomePage = () => {
               <h2 className="subtitle">Welcome to VoyageBoard!</h2>
             </div>
 
-            <IonButton fill="outline" color="medium" className="create-button" onClick={createNewTripboard}>
+            <IonButton
+              fill="outline"
+              color="medium"
+              className="create-button"
+              onClick={createNewTripboard}
+            >
               Create New Trip Board
               <IonIcon icon={add} slot="end" />
             </IonButton>
@@ -153,20 +166,36 @@ const HomePage = () => {
             <div className="empty-state">
               <IonIcon icon={calendarClearOutline} className="empty-icon" />
               <p>No trips yet</p>
-              <p className="empty-secondary">Create your first tripboard to get started.</p>
+              <p className="empty-secondary">
+                Create your first tripboard to get started.
+              </p>
             </div>
           ) : (
             <div className="tripboards-list">
-              {tripBoards.map((trip) => (
-                <IonCard key={trip.id} className="trip-card" onClick={() => history.push(`/canvas/${trip.id}`, { trip })}>
+              {tripBoards.map(trip => (
+                <IonCard
+                  key={trip.id}
+                  className="trip-card"
+                  onClick={() => history.push(`/canvas/${trip.id}`, { trip })}
+                >
                   <div className="trip-card-image-wrapper">
                     <img src={trip.coverImage || '/assets/default-cover.jpg'} alt={trip.name} />
-                    <IonButton fill="clear" color="light" className="trip-card-ellipsis" onClick={(e) => { e.stopPropagation(); openBoardActions(trip) }}>
+                    <IonButton
+                      fill="clear"
+                      color="light"
+                      className="trip-card-ellipsis"
+                      onClick={e => {
+                        e.stopPropagation()
+                        openBoardActions(trip)
+                      }}
+                    >
                       <IonIcon icon={ellipsisVertical} />
                     </IonButton>
                     <div className="trip-card-overlay">
-                      <h3 className="trip-card-title">{getCanvasName(trip)}</h3>
-                      <p className="trip-card-subtitle">Last Edited: {formatDate(getLastEdited(trip))}</p>
+                      <h3 className="trip-card-title">{trip.name}</h3>
+                      <p className="trip-card-subtitle">
+                        Last Edited: {formatDate(trip.lastEdited)}
+                      </p>
                     </div>
                   </div>
                 </IonCard>
