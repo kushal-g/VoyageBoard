@@ -126,7 +126,7 @@ export default function IdeaDumpPage() {
   }
 
   return (
-    <IonPage>
+    <IonPage className="idea-dump-page">
       <IonHeader>
         <IonToolbar className="canvas-header">
           <IonButtons slot="start">
@@ -207,8 +207,8 @@ export default function IdeaDumpPage() {
 
         <IonPopover trigger="add-trigger" triggerAction="click" className="id-pop">
           <div className="id-pop-inner">
-            <div className="id-input">
-              <IonIcon icon={linkOutline} />
+            <div className="id-input-row">
+              <IonIcon icon={linkOutline} className="id-input-icon" />
               <IonInput
                 placeholder="Insert link"
                 value={linkValue}
@@ -219,10 +219,9 @@ export default function IdeaDumpPage() {
               </IonButton>
             </div>
 
-            <label className="id-upload">
-              <IonIcon icon={cloudUploadOutline} />
-              <IonLabel>Upload file</IonLabel>
-              <span>Image / Video</span>
+            <label className="id-upload-row">
+              <IonIcon icon={cloudUploadOutline} className="id-upload-icon" />
+              <span className="id-upload-label">Upload file</span>
               <input
                 type="file"
                 accept="image/*,video/*"
