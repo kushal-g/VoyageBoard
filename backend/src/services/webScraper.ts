@@ -11,6 +11,7 @@ export interface TravelPlace {
   placeId?: string; // Google Maps Place ID
   coordinates?: PlaceLocation; // Google Maps coordinates
   formattedAddress?: string; // Formatted address from Google Maps
+  photoReference?: string; // Google Maps photo name for fetching images
 }
 
 export interface ScrapedData {
@@ -108,11 +109,17 @@ async function enrichPlaceWithGoogleMaps(
     // Get detailed information including coordinates
     const placeDetails = await getPlaceDetails(topResult.placeId, googleMapsApiKey);
 
+    // Extract the first photo reference if available
+    const photoReference = placeDetails.photos && placeDetails.photos.length > 0
+      ? placeDetails.photos[0].name
+      : undefined;
+
     return {
       ...place,
       placeId: placeDetails.id,
       coordinates: placeDetails.location,
       formattedAddress: placeDetails.formattedAddress,
+      photoReference,
     };
   } catch (error) {
     console.error(`Error enriching place "${place.name}" with Google Maps data:`, error);

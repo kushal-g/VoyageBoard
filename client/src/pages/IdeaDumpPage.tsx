@@ -24,10 +24,65 @@ type Status = 'ready' | 'unprocessed'
 type Idea = {
   id: string
   title: string
-  platform: Platform
+  platform: string
   thumb?: string
   status: Status
   link?: string
+}
+
+interface PlaceLocation {
+  latitude: number
+  longitude: number
+}
+
+interface TravelPlace {
+  name: string
+  description?: string
+  type?: string
+  location?: string
+  recommendations?: string
+  placeId?: string
+  coordinates?: PlaceLocation
+  formattedAddress?: string
+  photoReference?: string
+}
+
+interface ScrapeApiResponse {
+  url: string
+  html: string
+  title?: string
+  description?: string
+  headings: {
+    h1: string[]
+    h2: string[]
+    h3: string[]
+  }
+  links: Array<{
+    text: string
+    href: string
+  }>
+  images: Array<{
+    src: string
+    alt: string
+  }>
+  paragraphs: string[]
+  metadata: {
+    author?: string
+    keywords?: string
+    ogTitle?: string
+    ogDescription?: string
+    ogImage?: string
+  }
+  textContent?: string
+  extractedPlaces?: TravelPlace[]
+}
+
+const thumbs = {
+  gateway: 'https://images.unsplash.com/photo-1548013146-72479768bada',
+  juhu: 'https://images.unsplash.com/photo-1548013146-e7c9e5b2d7b8',
+  iskcon: 'https://images.unsplash.com/photo-1610438592283-5fbcf0c4b9f9',
+  lalbagh: 'https://images.unsplash.com/photo-1610201315927-9b8a7d4b4f6b',
+  taj: 'https://images.unsplash.com/photo-1549893079-842e6d40842a'
 }
 
 function platformFromUrl(u: string): Platform {
@@ -37,7 +92,7 @@ function platformFromUrl(u: string): Platform {
     if (h.includes('instagram')) return 'instagram'
     if (h.includes('facebook')) return 'facebook'
     if (h.includes('youtube') || h.includes('youtu.be')) return 'youtube'
-  } catch {}
+  } catch { }
   return 'upload'
 }
 
@@ -89,40 +144,35 @@ export default function IdeaDumpPage() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
-  async function processIdeas() {
-    const queue = items.filter(i => i.status === 'unprocessed')
-    if (queue.length === 0) return
+  function getUnprocessedItems() {
+    return items.filter(item => item.status === "unprocessed")
+  }
 
-    const updated: Idea[] = []
-
-    for (const item of queue) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
-          method: 'POST',
-          headers: { 'Content-type': 'application/json' },
-          body: JSON.stringify({
-            url: item.link,
-            extractPlaces: true
-          })
-        })
-        const body = await response.json()
-
-        updated.push({
-          ...item,
-          title: body.title || 'Processed',
-          status: 'ready'
-        })
-      } catch {
-        updated.push({
-          ...item,
-          title: 'Processed',
-          status: 'ready'
-        })
-      }
-    }
-
-    const finalSet = items.map(i => updated.find(u => u.id === i.id) || i)
-    setItems(finalSet)
+  async function processIdeas(): Promise<void> {
+    const unprocessedItems = getUnprocessedItems()
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
+      method: "POST",
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: unprocessedItems[0].link, //TODO: Extend to multiple items
+        extractPlaces: true
+      })
+    })
+    const body: ScrapeApiResponse = await response.json()
+    setItems(items => [
+      ...(body.extractedPlaces ?? [])
+        .map(place => ({
+          id: place.placeId as string,
+          title: place.name,
+          platform: body.title ?? "",
+          status: "ready" as Status,
+          thumb: `https://places.googleapis.com/v1/${place.photoReference}/media?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&maxHeightPx=400&maxWidthPx=400`
+        })),
+      ...items
+    ]
+    )
   }
 
   return (
@@ -189,7 +239,7 @@ export default function IdeaDumpPage() {
 
                 <div
                   className="id-thumb"
-                  style={{ backgroundColor: '#000' }}
+                  style={{ backgroundImage: `url(${card.thumb})` }}
                 />
                 <div className="id-gradient" />
                 <div className="id-meta">

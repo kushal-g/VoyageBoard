@@ -20,6 +20,17 @@ export interface PlaceLocation {
   longitude: number;
 }
 
+export interface PlacePhoto {
+  name: string;
+  widthPx: number;
+  heightPx: number;
+  authorAttributions?: Array<{
+    displayName: string;
+    uri: string;
+    photoUri: string;
+  }>;
+}
+
 export interface PlaceDetailsResult {
   id: string;
   displayName: {
@@ -29,6 +40,7 @@ export interface PlaceDetailsResult {
   formattedAddress: string;
   location: PlaceLocation;
   types: string[];
+  photos?: PlacePhoto[];
 }
 
 /**
@@ -108,7 +120,7 @@ export async function getPlaceDetails(
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,types',
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,types,photos',
         },
       }
     );
