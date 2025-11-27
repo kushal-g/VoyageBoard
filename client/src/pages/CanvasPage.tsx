@@ -22,7 +22,6 @@ import type { TOOL } from "../constants/types";
 import type { LocationGroup, LocationPin } from "./Canvas/Canvas";
 import CalendarSidebar from "../components/CalendarSidebar/CalendarSidebar";
 
-// Sidebar Component
 import Sidebar from "../components/Sidebar";
 import "../components/Sidebar.css";
 
@@ -50,7 +49,6 @@ export default function CanvasPage(props: CanvasPageProps) {
   const routeTrip = location.state?.trip;
   const tripId = params.id;
 
-  // Initialize trip name from route, props, localStorage, or default
   useEffect(() => {
     const storageKey = `canvas_${tripId}_name`;
     const storedName = tripId ? localStorage.getItem(storageKey) : null;
@@ -61,13 +59,11 @@ export default function CanvasPage(props: CanvasPageProps) {
     
     setTripName(initialName);
     
-    // Store in localStorage if we have an ID
     if (tripId && !storedName) {
       localStorage.setItem(storageKey, initialName);
     }
   }, [tripId, routeTrip?.name, props.tripName]);
 
-  // Initialize last edited
   useEffect(() => {
     const storageKey = `canvas_${tripId}_lastEdited`;
     const storedLastEdited = tripId ? localStorage.getItem(storageKey) : null;
@@ -83,7 +79,6 @@ export default function CanvasPage(props: CanvasPageProps) {
     setLastEdited(formattedLastEdited);
   }, [tripId, routeTrip?.lastEdited, props.lastEdited]);
 
-  // Focus input when editing starts
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
@@ -108,7 +103,6 @@ export default function CanvasPage(props: CanvasPageProps) {
       e.preventDefault();
       saveTitle();
     } else if (e.key === "Escape") {
-      // Revert to original name
       const storageKey = `canvas_${tripId}_name`;
       const storedName = tripId ? localStorage.getItem(storageKey) : null;
       const originalName =
@@ -121,7 +115,6 @@ export default function CanvasPage(props: CanvasPageProps) {
 
   const saveTitle = () => {
     if (!tripName.trim()) {
-      // Revert to default if empty
       const defaultName = tripId ? `Canvas ${tripId}` : "Canvas";
       setTripName(defaultName);
       if (tripId) {
@@ -131,19 +124,16 @@ export default function CanvasPage(props: CanvasPageProps) {
       return;
     }
 
-    // Save to localStorage
     if (tripId) {
       localStorage.setItem(`canvas_${tripId}_name`, tripName.trim());
     }
 
-    // Update last edited timestamp
     const now = new Date().toLocaleString();
     setLastEdited(now);
     if (tripId) {
       localStorage.setItem(`canvas_${tripId}_lastEdited`, now);
     }
 
-    // Update route state if available
     if (routeTrip) {
       historyRouter.replace(`/canvas/${tripId}`, {
         trip: {
@@ -157,17 +147,29 @@ export default function CanvasPage(props: CanvasPageProps) {
     setIsEditingTitle(false);
   };
 
+  const goToIdeaDump = () => {
+    if (!tripId) {
+      historyRouter.push("/idea-dump");
+      return;
+    }
+
+    historyRouter.push(`/canvas/${tripId}/ideas`, {
+      trip: {
+        name: tripName,
+        lastEdited,
+      },
+    });
+  };
+
   return (
     <IonPage>
       <AppStatusBar />
 
-      {/* Slide-In Sidebar */}
       <Sidebar currentTool={currentTool} setCurrentTool={setCurrentTool} isOpen={isSidebarOpen} />
       {isSidebarOpen && (
         <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      {/* Canvas Header */}
       <IonToolbar className="canvas-header">
         <IonButtons slot="start">
           <IonButton routerLink="/home">
@@ -210,7 +212,7 @@ export default function CanvasPage(props: CanvasPageProps) {
             <IonIcon icon={calendarOutline} />
           </IonButton>
 
-          <IonButton routerLink="/idea-dump">
+          <IonButton routerDirection="forward" onClick={goToIdeaDump}>
             <IonIcon icon={bulbOutline} />
           </IonButton>
         </IonButtons>
@@ -222,33 +224,28 @@ export default function CanvasPage(props: CanvasPageProps) {
           onGroupsChange={setGroups}
           onPinsChange={setPins}
           onDeleteGroup={(groupId) => {
-            // Delete group - Canvas will handle actual deletion via tool
-            setGroups(prev => prev.filter(g => g.id !== groupId))
+            setGroups(prev => prev.filter(g => g.id !== groupId));
           }}
           onUpdateGroupLabel={(groupId, newLabel) => {
-            // Update group label - Canvas will handle actual update via tool
             setGroups(prev => prev.map(g => 
               g.id === groupId ? { ...g, label: newLabel } : g
-            ))
+            ));
           }}
         />
       </IonContent>
 
-      {/* Calendar Sidebar */}
       <CalendarSidebar
         isOpen={isCalendarOpen}
         onClose={() => setIsCalendarOpen(false)}
         groups={groups}
         pins={pins}
         onDeleteGroup={(groupId) => {
-          // Trigger deletion - will be handled by Canvas via onDeleteGroup prop
-          setGroups(prev => prev.filter(g => g.id !== groupId))
+          setGroups(prev => prev.filter(g => g.id !== groupId));
         }}
         onUpdateGroupLabel={(groupId, newLabel) => {
-          // Trigger update - will be handled by Canvas via onUpdateGroupLabel prop
           setGroups(prev => prev.map(g => 
             g.id === groupId ? { ...g, label: newLabel } : g
-          ))
+          ));
         }}
       />
     </IonPage>

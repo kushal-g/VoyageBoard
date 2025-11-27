@@ -51,7 +51,7 @@ export default function IdeaDumpPage() {
 
   const [linkValue, setLinkValue] = useState('')
   const [showLeaveAlert, setShowLeaveAlert] = useState(false)
-  const tripTitle = "Idea Dump - Road Trip"
+  const tripTitle = "Idea Dump"
 
   const hasUnprocessed = items.some(i => i.status === 'unprocessed')
 
