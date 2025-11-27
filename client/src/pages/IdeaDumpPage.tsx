@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonContent,
-  IonTitle, IonPopover, IonList, IonItem, IonLabel, IonInput
+  IonTitle, IonPopover, IonList, IonItem, IonLabel, IonInput, IonAlert
 } from '@ionic/react'
-import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add } from 'ionicons/icons'
+import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add, trash } from 'ionicons/icons'
 import './IdeaDumpPage.css'
 import { useHistory } from 'react-router-dom'
 
@@ -15,7 +15,7 @@ type Idea = {
   title: string
   platform: Platform
   thumb?: string
-  status: Status,
+  status: Status
   link?: string
 }
 
@@ -34,7 +34,7 @@ function platformFromUrl(u: string): Platform {
     if (h.includes('instagram')) return 'instagram'
     if (h.includes('facebook')) return 'facebook'
     if (h.includes('youtube') || h.includes('youtu.be')) return 'youtube'
-  } catch { }
+  } catch {}
   return 'upload'
 }
 
@@ -50,7 +50,15 @@ export default function IdeaDumpPage() {
   ])
 
   const [linkValue, setLinkValue] = useState('')
+  const [showLeaveAlert, setShowLeaveAlert] = useState(false)
   const tripTitle = "Idea Dump - Road Trip"
+
+  const hasUnprocessed = items.some(i => i.status === 'unprocessed')
+
+  function handleBack() {
+    if (hasUnprocessed) setShowLeaveAlert(true)
+    else history.goBack()
+  }
 
   function addFromLink() {
     if (!linkValue.trim()) return
@@ -72,46 +80,57 @@ export default function IdeaDumpPage() {
     const id = Math.random().toString(36).slice(2)
 
     setItems(prev => [
-      { id, title: f.name || 'Upload', platform: 'upload', status: 'unprocessed' },
+      { id, title: f.name, platform: 'upload', status: 'unprocessed' },
       ...prev
     ])
   }
 
-  function getUnprocessedItems() {
-    return items.filter(item => item.title === "Unprocessed")
+  function deleteItem(id: string) {
+    setItems(prev => prev.filter(i => i.id !== id))
   }
 
-  async function processIdeas(): Promise<void> {
-    const unprocessedItems = getUnprocessedItems()
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
-      method: "POST",
-      headers: {
-        'Content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: unprocessedItems[0].link, //TODO: Extend to multiple items
-        extractPlaces: true
-      })
-    })
-    const body = await response.json()
-    console.log(body)
+  async function processIdeas() {
+    const queue = items.filter(i => i.status === 'unprocessed')
+
+    if (queue.length === 0) return
+
+    const updated: Idea[] = []
+
+    for (const item of queue) {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
+          method: "POST",
+          headers: { 'Content-type': 'application/json' },
+          body: JSON.stringify({
+            url: item.link,
+            extractPlaces: true
+          })
+        })
+        const body = await response.json()
+
+        updated.push({
+          ...item,
+          title: body.title || "Processed",
+          thumb: body.thumbnail || item.thumb,
+          status: "ready"
+        })
+      } catch {
+        updated.push({ ...item, title: "Processed", status: "ready" })
+      }
+    }
+
+    const finalSet = items.map(i => updated.find(u => u.id === i.id) || i)
+    setItems(finalSet)
   }
 
   return (
     <IonPage className="idea-dump-page">
 
-      {/* FULLY CUSTOM HEADER (MATCHES FIGMA) */}
       <IonHeader className="id-header">
-
         <div className="id-header-left">
-          <IonButton
-            fill="clear"
-            className="id-back-btn"
-            onClick={() => history.goBack()}
-          >
+          <IonButton fill="clear" className="id-back-btn" onClick={handleBack}>
             <IonIcon icon={chevronBack} />
           </IonButton>
-
         </div>
 
         <div className="id-header-center">
@@ -129,18 +148,18 @@ export default function IdeaDumpPage() {
             <IonIcon icon={add} />
           </IonButton>
         </div>
-
       </IonHeader>
 
-
-      {/* PAGE CONTENT */}
       <IonContent className="id-content">
 
         <div className="id-grid">
           {items.map(card => (
             <div key={card.id} className="id-card">
 
-              {/* READY CARD */}
+              <IonButton fill="clear" className="id-delete-btn" onClick={() => deleteItem(card.id)}>
+                <IonIcon icon={trash} />
+              </IonButton>
+
               {card.status === 'ready' && (
                 <>
                   <div className="id-thumb" style={{ backgroundImage: `url(${card.thumb})` }} />
@@ -154,7 +173,6 @@ export default function IdeaDumpPage() {
                 </>
               )}
 
-              {/* UNPROCESSED CARD */}
               {card.status === 'unprocessed' && (
                 <div className="id-unprocessed">
                   <IonIcon icon={playCircle} className="id-play" />
@@ -166,16 +184,12 @@ export default function IdeaDumpPage() {
                   </div>
                 </div>
               )}
-
             </div>
           ))}
         </div>
 
-
-        {/* ADD POPUP */}
         <IonPopover trigger="add-trigger" triggerAction="click" className="id-pop">
           <div className="id-pop-inner">
-
             <div className="id-input">
               <IonIcon icon={linkOutline} />
               <IonInput
@@ -192,12 +206,21 @@ export default function IdeaDumpPage() {
               <span>Image / Video</span>
               <input type="file" accept="image/*,video/*" onChange={(e) => onFileUpload(e.target.files)} />
             </label>
-
           </div>
         </IonPopover>
 
-      </IonContent>
+        <IonAlert
+          isOpen={showLeaveAlert}
+          onDidDismiss={() => setShowLeaveAlert(false)}
+          header="Unprocessed Items"
+          message="You uploaded new links. Process them before returning to Canvas?"
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Leave Anyway", handler: () => history.goBack() }
+          ]}
+        />
 
+      </IonContent>
     </IonPage>
   )
 }
