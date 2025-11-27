@@ -4,6 +4,7 @@ import { useParams, useLocation, useHistory } from "react-router-dom";
 import {
   IonPage,
   IonContent,
+  IonHeader,
   IonToolbar,
   IonButtons,
   IonButton,
@@ -11,17 +12,13 @@ import {
   IonTitle,
   IonText,
 } from "@ionic/react";
-
 import { chevronBack, menuOutline, calendarOutline, bulbOutline } from "ionicons/icons";
-
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
-
 import Canvas from "./Canvas/Canvas";
 import type { TOOL } from "../constants/types";
 import type { LocationGroup, LocationPin } from "./Canvas/Canvas";
 import CalendarSidebar from "../components/CalendarSidebar/CalendarSidebar";
-
 import Sidebar from "../components/Sidebar";
 import "../components/Sidebar.css";
 
@@ -52,13 +49,13 @@ export default function CanvasPage(props: CanvasPageProps) {
   useEffect(() => {
     const storageKey = `canvas_${tripId}_name`;
     const storedName = tripId ? localStorage.getItem(storageKey) : null;
-    
+
     const initialName =
       routeTrip?.name ??
       (props.tripName ? props.tripName : storedName ?? (tripId ? `Canvas ${tripId}` : "Canvas"));
-    
+
     setTripName(initialName);
-    
+
     if (tripId && !storedName) {
       localStorage.setItem(storageKey, initialName);
     }
@@ -67,7 +64,7 @@ export default function CanvasPage(props: CanvasPageProps) {
   useEffect(() => {
     const storageKey = `canvas_${tripId}_lastEdited`;
     const storedLastEdited = tripId ? localStorage.getItem(storageKey) : null;
-    
+
     const rawLastEdited: any = routeTrip?.lastEdited ?? props.lastEdited ?? storedLastEdited;
     const formattedLastEdited =
       typeof rawLastEdited === "string"
@@ -75,7 +72,7 @@ export default function CanvasPage(props: CanvasPageProps) {
         : rawLastEdited instanceof Date
         ? rawLastEdited.toLocaleString()
         : new Date().toLocaleString();
-    
+
     setLastEdited(formattedLastEdited);
   }, [tripId, routeTrip?.lastEdited, props.lastEdited]);
 
@@ -147,20 +144,6 @@ export default function CanvasPage(props: CanvasPageProps) {
     setIsEditingTitle(false);
   };
 
-  const goToIdeaDump = () => {
-    if (!tripId) {
-      historyRouter.push("/idea-dump");
-      return;
-    }
-
-    historyRouter.push(`/canvas/${tripId}/ideas`, {
-      trip: {
-        name: tripName,
-        lastEdited,
-      },
-    });
-  };
-
   return (
     <IonPage>
       <AppStatusBar />
@@ -170,66 +153,68 @@ export default function CanvasPage(props: CanvasPageProps) {
         <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      <IonToolbar className="canvas-header">
-        <IonButtons slot="start">
-          <IonButton routerLink="/home">
-            <IonIcon icon={chevronBack} />
-          </IonButton>
+      <IonHeader>
+        <IonToolbar className="canvas-header">
+          <IonButtons slot="start">
+            <IonButton routerLink="/home">
+              <IonIcon icon={chevronBack} />
+            </IonButton>
 
-          <IonButton onClick={() => setIsSidebarOpen((prev) => !prev)}>
-            <IonIcon icon={menuOutline} />
-          </IonButton>
-        </IonButtons>
+            <IonButton onClick={() => setIsSidebarOpen((prev) => !prev)}>
+              <IonIcon icon={menuOutline} />
+            </IonButton>
+          </IonButtons>
 
-        <IonTitle className="canvas-title-container">
-          <div className="canvas-title-block">
-            {isEditingTitle ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={tripName}
-                onChange={handleTitleChange}
-                onBlur={handleTitleBlur}
-                onKeyDown={handleTitleKeyDown}
-                className="canvas-title-input"
-              />
-            ) : (
-              <div 
-                className="canvas-title" 
-                onClick={handleTitleClick}
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                title="Click to rename"
-              >
-                {tripName}
-              </div>
-            )}
-            <IonText className="canvas-subtitle">Last Edited: {lastEdited}</IonText>
-          </div>
-        </IonTitle>
+          <IonTitle className="canvas-title-container">
+            <div className="canvas-title-block">
+              {isEditingTitle ? (
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={tripName}
+                  onChange={handleTitleChange}
+                  onBlur={handleTitleBlur}
+                  onKeyDown={handleTitleKeyDown}
+                  className="canvas-title-input"
+                />
+              ) : (
+                <div
+                  className="canvas-title"
+                  onClick={handleTitleClick}
+                  style={{ cursor: "pointer", userSelect: "none" }}
+                  title="Click to rename"
+                >
+                  {tripName}
+                </div>
+              )}
+              <IonText className="canvas-subtitle">Last Edited: {lastEdited}</IonText>
+            </div>
+          </IonTitle>
 
-        <IonButtons slot="end">
-          <IonButton onClick={() => setIsCalendarOpen((prev) => !prev)}>
-            <IonIcon icon={calendarOutline} />
-          </IonButton>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setIsCalendarOpen((prev) => !prev)}>
+              <IonIcon icon={calendarOutline} />
+            </IonButton>
 
-          <IonButton routerDirection="forward" onClick={goToIdeaDump}>
-            <IonIcon icon={bulbOutline} />
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
+            <IonButton routerLink="/idea-dump" routerDirection="forward">
+              <IonIcon icon={bulbOutline} />
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
 
       <IonContent className="canvas-content">
-        <Canvas 
-          currentTool={currentTool} 
+        <Canvas
+          currentTool={currentTool}
           onGroupsChange={setGroups}
           onPinsChange={setPins}
           onDeleteGroup={(groupId) => {
-            setGroups(prev => prev.filter(g => g.id !== groupId));
+            setGroups((prev) => prev.filter((g) => g.id !== groupId));
           }}
           onUpdateGroupLabel={(groupId, newLabel) => {
-            setGroups(prev => prev.map(g => 
-              g.id === groupId ? { ...g, label: newLabel } : g
-            ));
+            setGroups((prev) =>
+              prev.map((g) => (g.id === groupId ? { ...g, label: newLabel } : g))
+            );
           }}
         />
       </IonContent>
@@ -240,12 +225,12 @@ export default function CanvasPage(props: CanvasPageProps) {
         groups={groups}
         pins={pins}
         onDeleteGroup={(groupId) => {
-          setGroups(prev => prev.filter(g => g.id !== groupId));
+          setGroups((prev) => prev.filter((g) => g.id !== groupId));
         }}
         onUpdateGroupLabel={(groupId, newLabel) => {
-          setGroups(prev => prev.map(g => 
-            g.id === groupId ? { ...g, label: newLabel } : g
-          ));
+          setGroups((prev) =>
+            prev.map((g) => (g.id === groupId ? { ...g, label: newLabel } : g))
+          );
         }}
       />
     </IonPage>
