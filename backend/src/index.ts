@@ -151,7 +151,7 @@ app.post('/api/stats/reset', (_req: Request, res: Response): void => {
 app.post('/api/scrape', async (req: Request, res: Response): Promise<void> => {
   try {
     const { url, waitForSelector, extractPlaces } = req.body;
-
+    console.log("req.body", req.body)
     if (!url || typeof url !== 'string') {
       res.status(400).json({
         error: 'Missing or invalid "url" in request body',

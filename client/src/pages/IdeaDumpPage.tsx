@@ -15,7 +15,8 @@ type Idea = {
   title: string
   platform: Platform
   thumb?: string
-  status: Status
+  status: Status,
+  link?: string
 }
 
 const thumbs = {
@@ -33,19 +34,19 @@ function platformFromUrl(u: string): Platform {
     if (h.includes('instagram')) return 'instagram'
     if (h.includes('facebook')) return 'facebook'
     if (h.includes('youtube') || h.includes('youtu.be')) return 'youtube'
-  } catch {}
+  } catch { }
   return 'upload'
 }
 
 export default function IdeaDumpPage() {
   const history = useHistory()
-  
+
   const [items, setItems] = useState<Idea[]>([
-    { id: '1', title: 'Gateway of India',         platform: 'tiktok',    thumb: thumbs.gateway, status: 'ready' },
-    { id: '2', title: 'Juhu Beach',              platform: 'instagram', thumb: thumbs.juhu,    status: 'ready' },
-    { id: '3', title: 'ISKCON - Bangalore',      platform: 'upload',    thumb: thumbs.iskcon,  status: 'ready' },
-    { id: '4', title: 'Lalbagh Botanical Garden',platform: 'tiktok',    thumb: thumbs.lalbagh, status: 'ready' },
-    { id: '5', title: 'Taj Hotel',               platform: 'facebook',  thumb: thumbs.taj,     status: 'ready' }
+    { id: '1', title: 'Gateway of India', platform: 'tiktok', thumb: thumbs.gateway, status: 'ready' },
+    { id: '2', title: 'Juhu Beach', platform: 'instagram', thumb: thumbs.juhu, status: 'ready' },
+    { id: '3', title: 'ISKCON - Bangalore', platform: 'upload', thumb: thumbs.iskcon, status: 'ready' },
+    { id: '4', title: 'Lalbagh Botanical Garden', platform: 'tiktok', thumb: thumbs.lalbagh, status: 'ready' },
+    { id: '5', title: 'Taj Hotel', platform: 'facebook', thumb: thumbs.taj, status: 'ready' }
   ])
 
   const [linkValue, setLinkValue] = useState('')
@@ -58,7 +59,7 @@ export default function IdeaDumpPage() {
     const id = Math.random().toString(36).slice(2)
 
     setItems(prev => [
-      { id, title: 'Unprocessed', platform: p, status: 'unprocessed' },
+      { id, title: 'Unprocessed', platform: p, status: 'unprocessed', link: url },
       ...prev
     ])
 
@@ -74,6 +75,26 @@ export default function IdeaDumpPage() {
       { id, title: f.name || 'Upload', platform: 'upload', status: 'unprocessed' },
       ...prev
     ])
+  }
+
+  function getUnprocessedItems() {
+    return items.filter(item => item.title === "Unprocessed")
+  }
+
+  async function processIdeas(): Promise<void> {
+    const unprocessedItems = getUnprocessedItems()
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
+      method: "POST",
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: unprocessedItems[0].link, //TODO: Extend to multiple items
+        extractPlaces: true
+      })
+    })
+    const body = await response.json()
+    console.log(body)
   }
 
   return (
@@ -99,7 +120,7 @@ export default function IdeaDumpPage() {
         </div>
 
         <div className="id-header-right">
-          <IonButton id="process-trigger" className="id-pill">
+          <IonButton id="process-trigger" className="id-pill" onClick={processIdeas}>
             <span>Process Ideas</span>
             <IonIcon icon={playCircle} />
           </IonButton>
@@ -172,18 +193,6 @@ export default function IdeaDumpPage() {
               <input type="file" accept="image/*,video/*" onChange={(e) => onFileUpload(e.target.files)} />
             </label>
 
-          </div>
-        </IonPopover>
-
-
-        {/* PROCESS POPUP */}
-        <IonPopover trigger="process-trigger" triggerAction="click" className="id-pop small">
-          <div className="id-pop-inner mini">
-            <IonList>
-              <IonItem lines="none">
-                <IonLabel>Processing coming soon</IonLabel>
-              </IonItem>
-            </IonList>
           </div>
         </IonPopover>
 
