@@ -41,9 +41,18 @@ export default function CanvasPage(props: CanvasPageProps) {
 
   const params = useParams<{ id?: string }>();
   const location =
-    useLocation<{ trip?: { name?: string; lastEdited?: string } } | undefined>();
+    useLocation<{ 
+      trip?: { name?: string; lastEdited?: string }
+      placesToAdd?: Array<{
+        name: string
+        placeId?: string
+        formattedAddress?: string
+        coordinates?: { latitude: number; longitude: number }
+      }>
+    } | undefined>();
 
   const routeTrip = location.state?.trip;
+  const placesToAdd = location.state?.placesToAdd;
   const tripId = params.id;
 
   useEffect(() => {
@@ -216,6 +225,7 @@ export default function CanvasPage(props: CanvasPageProps) {
               prev.map((g) => (g.id === groupId ? { ...g, label: newLabel } : g))
             );
           }}
+          placesToAdd={placesToAdd}
         />
       </IonContent>
 

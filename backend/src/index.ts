@@ -187,6 +187,51 @@ app.post('/api/scrape', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// Travel options endpoint
+app.get('/api/travel/options', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { origin, destination } = req.query;
+
+    if (!origin || typeof origin !== 'string') {
+      res.status(400).json({
+        error: 'Missing or invalid "origin" query parameter',
+      });
+      return;
+    }
+
+    if (!destination || typeof destination !== 'string') {
+      res.status(400).json({
+        error: 'Missing or invalid "destination" query parameter',
+      });
+      return;
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({
+        error: 'Google Maps API key not configured',
+      });
+      return;
+    }
+
+    const results = await searchAllTravelOptions(origin, destination, apiKey, {
+      includeFlights: true,
+      includeTransit: true,
+      includeDriving: true,
+      includeWalking: false,
+      includeBicycling: false,
+    });
+
+    res.json(results);
+  } catch (error) {
+    console.error('Travel options error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch travel options',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

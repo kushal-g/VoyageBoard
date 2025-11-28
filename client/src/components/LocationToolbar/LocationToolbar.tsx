@@ -28,6 +28,7 @@ interface LocationToolbarProps {
   inputRef: React.RefObject<HTMLInputElement | null>
   isSelectMode: boolean
   onSelectModeToggle: () => void
+  isLoadingSuggestions?: boolean
 }
 
 export default function LocationToolbar({
@@ -42,6 +43,7 @@ export default function LocationToolbar({
   inputRef,
   isSelectMode,
   onSelectModeToggle,
+  isLoadingSuggestions = false,
 }: LocationToolbarProps) {
   const locationInputRef = useRef<HTMLDivElement>(null)
 
@@ -135,17 +137,23 @@ export default function LocationToolbar({
                 }}
               />
             </Button>
-            {showSuggestions && filteredDestinations.length > 0 && (
+            {showSuggestions && (
               <div className="popover location-suggestions-popover">
-                {filteredDestinations.map((dest, index) => (
-                  <div
-                    key={index}
-                    onClick={() => onLocationSelect(dest)}
-                    className="suggestion-item"
-                  >
-                    {dest}
-                  </div>
-                ))}
+                {isLoadingSuggestions ? (
+                  <div className="suggestion-item loading">Loading suggestions...</div>
+                ) : filteredDestinations.length > 0 ? (
+                  filteredDestinations.map((dest, index) => (
+                    <div
+                      key={index}
+                      onClick={() => onLocationSelect(dest)}
+                      className="suggestion-item"
+                    >
+                      {dest}
+                    </div>
+                  ))
+                ) : (
+                  <div className="suggestion-item no-results">No locations found</div>
+                )}
               </div>
             )}
           </div>

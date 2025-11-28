@@ -150,29 +150,72 @@ export default function IdeaDumpPage() {
 
   async function processIdeas(): Promise<void> {
     const unprocessedItems = getUnprocessedItems()
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
-      method: "POST",
-      headers: {
-        'Content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: unprocessedItems[0].link, //TODO: Extend to multiple items
-        extractPlaces: true
+    if (unprocessedItems.length === 0) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
+        method: "POST",
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: unprocessedItems[0].link, //TODO: Extend to multiple items
+          extractPlaces: true
+        })
       })
-    })
-    const body: ScrapeApiResponse = await response.json()
-    setItems(items => [
-      ...(body.extractedPlaces ?? [])
-        .map(place => ({
-          id: place.placeId as string,
-          title: place.name,
-          platform: body.title ?? "",
-          status: "ready" as Status,
-          thumb: `https://places.googleapis.com/v1/${place.photoReference}/media?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&maxHeightPx=400&maxWidthPx=400`
-        })),
-      ...items
-    ]
-    )
+
+      if (!response.ok) {
+        console.error('Failed to scrape:', response.statusText)
+        return
+      }
+
+      const body: ScrapeApiResponse = await response.json()
+      
+      // Update items - mark processed item as ready and add extracted places
+      setItems(items => {
+        const updatedItems = items.map(item => 
+          item.id === unprocessedItems[0].id 
+            ? { ...item, status: 'ready' as Status, title: body.title || item.title }
+            : item
+        )
+        
+        // Add extracted places as new items
+        const newPlaceItems = (body.extractedPlaces ?? [])
+          .map(place => ({
+            id: place.placeId as string || Math.random().toString(36).slice(2),
+            title: place.name,
+            platform: body.title ?? "",
+            status: "ready" as Status,
+            thumb: place.photoReference 
+              ? `https://places.googleapis.com/v1/${place.photoReference}/media?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&maxHeightPx=400&maxWidthPx=400`
+              : undefined
+          }))
+        
+        return [...newPlaceItems, ...updatedItems]
+      })
+
+      // Store extracted places to add to canvas
+      if (body.extractedPlaces && body.extractedPlaces.length > 0) {
+        // Store places in localStorage to be picked up by canvas
+        const placesToAdd = body.extractedPlaces.map(place => ({
+          name: place.name,
+          placeId: place.placeId,
+          formattedAddress: place.formattedAddress,
+          coordinates: place.coordinates
+        }))
+        
+        localStorage.setItem('placesToAddToCanvas', JSON.stringify(placesToAdd))
+        
+        // Navigate to canvas page (use the trip ID from current location or default)
+        const canvasId = trip?.name ? encodeURIComponent(trip.name) : '1'
+        history.push(`/canvas/${canvasId}`, { 
+          trip,
+          placesToAdd: placesToAdd 
+        })
+      }
+    } catch (error) {
+      console.error('Error processing ideas:', error)
+    }
   }
 
   return (

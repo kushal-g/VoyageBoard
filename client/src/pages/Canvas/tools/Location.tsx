@@ -42,14 +42,34 @@ const DESTINATIONS = [
     'Florence, Italy'
 ].sort()
 
+interface TransitLine {
+    start: { x: number; y: number }
+    end: { x: number; y: number }
+    distance: number
+    id: number
+    transitOptions?: Array<{
+        type: 'drive' | 'bus' | 'train' | 'flight' | 'walk' | 'bicycle'
+        duration: string
+        distance?: string
+        cost?: string
+        icon: string
+    }>
+    selectedOptionIndex?: number
+    lineColor?: string
+    lineWidth?: number
+}
+
 export const useLocationTool = (
     pins: LocationPin[],
-    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>
+    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
+    transitLines: TransitLine[] = []
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [filteredDestinations, setFilteredDestinations] = useState<string[]>([])
+    const [destinationPredictions, setDestinationPredictions] = useState<any[]>([]) // Store full prediction data
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
     const [selectedPinIndex, setSelectedPinIndex] = useState<number | null>(null)
     const [isDragging, setIsDragging] = useState(false)
@@ -60,18 +80,70 @@ export const useLocationTool = (
     const canvasStateBeforeDrag = useRef<ImageData | null>(null)
     const mouseDownPosition = useRef<Point | null>(null)
     const hasMoved = useRef(false)
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    // Filter destinations based on input
+    // Fetch autocomplete suggestions from backend API
     useEffect(() => {
+        // Clear previous timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current)
+        }
+
         if (pinLocation.trim() === '') {
             setFilteredDestinations([])
             setShowSuggestions(false)
-        } else {
-            const filtered = DESTINATIONS.filter(dest =>
-                dest.toLowerCase().includes(pinLocation.toLowerCase())
-            ).slice(0, 5) // Limit to 5 suggestions
-            setFilteredDestinations(filtered)
-            setShowSuggestions(filtered.length > 0)
+            setIsLoadingSuggestions(false)
+            return
+        }
+
+        // Debounce API calls (wait 300ms after user stops typing)
+        debounceTimer.current = setTimeout(async () => {
+            setIsLoadingSuggestions(true)
+            
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+                const response = await fetch(
+                    `${apiUrl}/api/places/autocomplete?input=${encodeURIComponent(pinLocation.trim())}`
+                )
+
+                if (response.ok) {
+                    const data = await response.json()
+                    // Store full predictions for placeId access
+                    const predictions = data.predictions?.slice(0, 5) || []
+                    setDestinationPredictions(predictions)
+                    // Extract descriptions from predictions
+                    const suggestions = predictions.map((pred: any) => pred.description) || []
+                    setFilteredDestinations(suggestions)
+                    setShowSuggestions(suggestions.length > 0)
+                } else {
+                    // Fallback to static list if API fails
+                    console.warn('API request failed, using fallback list')
+                    setDestinationPredictions([])
+                    const filtered = DESTINATIONS.filter(dest =>
+                        dest.toLowerCase().includes(pinLocation.toLowerCase())
+                    ).slice(0, 5)
+                    setFilteredDestinations(filtered)
+                    setShowSuggestions(filtered.length > 0)
+                }
+            } catch (error) {
+                // Fallback to static list if API is unavailable
+                console.warn('API request error, using fallback list:', error)
+                setDestinationPredictions([])
+                const filtered = DESTINATIONS.filter(dest =>
+                    dest.toLowerCase().includes(pinLocation.toLowerCase())
+                ).slice(0, 5)
+                setFilteredDestinations(filtered)
+                setShowSuggestions(filtered.length > 0)
+            } finally {
+                setIsLoadingSuggestions(false)
+            }
+        }, 300) // 300ms debounce
+
+        // Cleanup function
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current)
+            }
         }
     }, [pinLocation])
 
@@ -94,6 +166,8 @@ export const useLocationTool = (
                     drawLocation(ctx, pin.x, pin.y, color, pin.location)
                 })
             }
+
+            // Transit lines will be redrawn by Canvas component's useEffect
         }
     }, [pins, pinColor])
 
@@ -101,19 +175,23 @@ export const useLocationTool = (
         setPinLocation(location)
         setShowSuggestions(false)
 
-        // If editing a selected pin, update its location
+        // Find the prediction for this location to get placeId
+        const prediction = destinationPredictions.find((pred: any) => pred.description === location)
+
+        // If editing a selected pin, update its location and placeId
         if (selectedPinIndex !== null && isEditingLocation) {
-            updatePinLocation(selectedPinIndex, location)
+            updatePinLocation(selectedPinIndex, location, prediction?.placeId)
         }
     }
 
-    const updatePinLocation = (pinIndex: number, newLocation: string) => {
+    const updatePinLocation = (pinIndex: number, newLocation: string, placeId?: string) => {
         setPins(prev => {
             const newPins = [...prev]
             if (pinIndex < newPins.length) {
                 newPins[pinIndex] = {
                     ...newPins[pinIndex],
-                    location: newLocation
+                    location: newLocation,
+                    ...(placeId && { placeId })
                 }
             }
             return newPins
@@ -208,13 +286,17 @@ export const useLocationTool = (
         const x = rect.width / 2
         const y = rect.height / 2
 
+        // Find the prediction for this location to get placeId
+        const prediction = destinationPredictions.find((pred: any) => pred.description === pinLocation)
+
         // Create new pin
         const newPin: LocationPin & { color?: string } = {
             x,
             y,
             id: Date.now(),
             location: pinLocation,
-            color: pinColor
+            color: pinColor,
+            ...(prediction?.placeId && { placeId: prediction.placeId })
         }
 
         // Draw location on canvas immediately
@@ -229,6 +311,7 @@ export const useLocationTool = (
         // Clear location input
         setPinLocation('')
         setFilteredDestinations([])
+        setDestinationPredictions([])
         setShowSuggestions(false)
     }
 
@@ -535,6 +618,7 @@ export const useLocationTool = (
             inputRef={inputRef}
             isSelectMode={isSelectMode}
             onSelectModeToggle={handleSelectModeToggle}
+            isLoadingSuggestions={isLoadingSuggestions}
         />
     )
 

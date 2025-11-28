@@ -9,10 +9,16 @@ interface Point {
 }
 
 interface TransitOption {
-    type: 'car' | 'bus' | 'public_transport' | 'flight'
+    type: 'drive' | 'bus' | 'train' | 'flight' | 'walk' | 'bicycle'
     duration: string
-    cost: string
+    distance?: string
+    cost?: string
+    price?: {
+        amount: number
+        currency: string
+    }
     icon: string
+    provider?: string
 }
 
 interface TransitLine {
@@ -22,10 +28,15 @@ interface TransitLine {
     id: number
     transitOptions?: TransitOption[]
     selectedOptionIndex?: number
+    lineColor?: string
+    lineWidth?: number
 }
 
-export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
-    const [_lines, _setLines] = useState<TransitLine[]>([])
+export const useTransitTool = (
+    pins: LocationPin[],
+    savedLines: TransitLine[] = [],
+    setSavedLines?: React.Dispatch<React.SetStateAction<TransitLine[]>>
+): CanvasTool => {
     const [lineColor, setLineColor] = useState('#000000')
     const [lineWidth, setLineWidth] = useState(3)
     const [startPoint, setStartPoint] = useState<Point | null>(null)
@@ -37,6 +48,9 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
     const [showDistance, setShowDistance] = useState(false)
     const [animationFrame, setAnimationFrame] = useState(0)
     const [selectedTransitIndex, setSelectedTransitIndex] = useState<number>(0)
+    const [fetchedTransitOptions, setFetchedTransitOptions] = useState<TransitOption[]>([])
+    const [isFetchingTransit, setIsFetchingTransit] = useState(false)
+    const [actualDistance, setActualDistance] = useState<number | null>(null)
     const loaderTimeoutRef = useRef<number | null>(null)
     const animationFrameRef = useRef<number | null>(null)
     const canvasRefForRedraw = useRef<HTMLCanvasElement | null>(null)
@@ -69,6 +83,12 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         }
     }, [showLoader])
 
+    // Redraw all saved transit lines when they change or canvas is available
+    useEffect(() => {
+        // Get canvas from the canvas ref passed via deps
+        // We'll redraw when canvas is available through the tool's interaction
+    }, [savedLines, lineColor, lineWidth])
+
     // Redraw canvas when animation frame changes (to animate the loader)
     useEffect(() => {
         if (showLoader && isDrawing && startPoint && currentPoint && canvasStateBeforeDrawing.current && canvasRefForRedraw.current) {
@@ -79,11 +99,27 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
             // Restore the canvas to the state before drawing started
             ctx.putImageData(canvasStateBeforeDrawing.current, 0, 0)
 
+            // Redraw all saved lines first
+            savedLines.forEach(line => {
+                drawLine(
+                    ctx,
+                    line.start,
+                    line.end,
+                    line.lineColor || lineColor,
+                    line.lineWidth || lineWidth,
+                    line.distance,
+                    'distance',
+                    0,
+                    line.transitOptions,
+                    line.selectedOptionIndex || 0
+                )
+            })
+
             // Redraw the preview line with updated animation frame
             const distance = calculateDistance(startPoint, currentPoint)
             drawLine(ctx, startPoint, currentPoint, lineColor, lineWidth, distance, 'loader', animationFrame, undefined, 0)
         }
-    }, [animationFrame, showLoader, isDrawing, startPoint, currentPoint, lineColor, lineWidth])
+    }, [animationFrame, showLoader, isDrawing, startPoint, currentPoint, lineColor, lineWidth, savedLines])
 
     const getCoordinates = (
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -148,8 +184,10 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         const totalHeight = transitOptions.length * rowHeight + panelPadding * 2
         const panelX = midX - panelWidth / 2
 
-        // Check if click is within the panel bounds
-        if (x < panelX || x > panelX + panelWidth || y < startPanelY || y > startPanelY + totalHeight) {
+        // Check if click is within the panel bounds (with tolerance for easier clicking)
+        const tolerance = 10
+        if (x < panelX - tolerance || x > panelX + panelWidth + tolerance || 
+            y < startPanelY - tolerance || y > startPanelY + totalHeight + tolerance) {
             return null
         }
 
@@ -165,67 +203,63 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         return null
     }
 
-    const generateTransitOptions = (distance: number): TransitOption[] => {
-        // Generate realistic transit options based on distance
-        const options: TransitOption[] = []
-
-        // Car - available for most distances
-        if (distance < 1000) {
-            const carTime = Math.max(Math.round(distance / 60 * 60), 15) // ~60 km/h average speed
-            const carCost = Math.round(distance * 0.15) // ~$0.15 per km (fuel + wear)
-            options.push({
-                type: 'car',
-                duration: carTime < 60 ? `${carTime}m` : `${Math.floor(carTime / 60)}h ${carTime % 60}m`,
-                cost: `$${carCost}`,
-                icon: '🚗'
-            })
+    // Map backend travel option types to our TransitOption format
+    const mapTravelOptionToTransitOption = (option: any): TransitOption => {
+        const typeMap: Record<string, 'drive' | 'bus' | 'train' | 'flight' | 'walk' | 'bicycle'> = {
+            'drive': 'drive',
+            'bus': 'bus',
+            'train': 'train',
+            'flight': 'flight',
+            'walk': 'walk',
+            'bicycle': 'bicycle'
         }
 
-        // Bus - available for short to medium distances
-        if (distance < 500) {
-            const busTime = Math.max(Math.round(distance / 40 * 60), 20) // ~40 km/h average speed
-            const busCost = Math.max(Math.round(distance * 0.05), 2) // ~$0.05 per km, min $2
-            options.push({
-                type: 'bus',
-                duration: busTime < 60 ? `${busTime}m` : `${Math.floor(busTime / 60)}h ${busTime % 60}m`,
-                cost: `$${busCost}`,
-                icon: '🚌'
-            })
+        const iconMap: Record<string, string> = {
+            'drive': '🚗',
+            'bus': '🚌',
+            'train': '🚆',
+            'flight': '✈️',
+            'walk': '🚶',
+            'bicycle': '🚴'
         }
 
-        // Public Transport (train/metro) - available for medium distances
-        if (distance >= 20 && distance < 800) {
-            const trainTime = Math.max(Math.round(distance / 80 * 60), 15) // ~80 km/h average speed
-            const trainCost = Math.max(Math.round(distance * 0.08), 3) // ~$0.08 per km, min $3
-            options.push({
-                type: 'public_transport',
-                duration: trainTime < 60 ? `${trainTime}m` : `${Math.floor(trainTime / 60)}h ${trainTime % 60}m`,
-                cost: `$${trainCost}`,
-                icon: '🚆'
-            })
+        const type = typeMap[option.type] || 'drive'
+        const cost = option.price 
+            ? `$${option.price.amount}` 
+            : option.cost || undefined
+
+        return {
+            type,
+            duration: option.duration || 'N/A',
+            distance: option.distance,
+            cost,
+            price: option.price,
+            icon: iconMap[type] || '🚗',
+            provider: option.provider
         }
+    }
 
-        // Flight - only for long distances
-        if (distance >= 300) {
-            // Flight time includes airport time (~2h) + flight time (~800 km/h)
-            const flightTime = Math.round(120 + (distance / 800 * 60))
-            const flightCost = Math.round(50 + distance * 0.20) // Base cost + per km
-            options.push({
-                type: 'flight',
-                duration: flightTime < 60 ? `${flightTime}m` : `${Math.floor(flightTime / 60)}h ${flightTime % 60}m`,
-                cost: `$${flightCost}`,
-                icon: '✈️'
-            })
+    // Fetch transit options from backend API
+    const fetchTransitOptions = async (originPlaceId: string, destinationPlaceId: string): Promise<TransitOption[]> => {
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+            const response = await fetch(
+                `${apiUrl}/api/travel/options?origin=${encodeURIComponent(originPlaceId)}&destination=${encodeURIComponent(destinationPlaceId)}`
+            )
+
+            if (response.ok) {
+                const data = await response.json()
+                // Map backend options to our format
+                const options = (data.options || []).map(mapTravelOptionToTransitOption)
+                return options
+            } else {
+                console.warn('Failed to fetch transit options from API')
+                return []
+            }
+        } catch (error) {
+            console.error('Error fetching transit options:', error)
+            return []
         }
-
-        // Sort by cost (lowest first)
-        options.sort((a, b) => {
-            const costA = parseInt(a.cost.replace('$', ''))
-            const costB = parseInt(b.cost.replace('$', ''))
-            return costA - costB
-        })
-
-        return options
     }
 
     const drawLine = (
@@ -285,7 +319,16 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
             ctx.textAlign = 'center'
             ctx.textBaseline = 'bottom'
 
-            const distanceText = `${distance} km`
+            // Use actual distance from API if available, otherwise use calculated distance
+            let distanceText = `${distance} km`
+            if (transitOptions && transitOptions.length > 0 && transitOptions[0].distance) {
+                // Extract distance from first option (format: "123.45 km (76.67 mi)")
+                const distMatch = transitOptions[0].distance.match(/([\d.]+)\s*km/i)
+                if (distMatch) {
+                    distanceText = `${parseFloat(distMatch[1]).toFixed(0)} km`
+                }
+            }
+
             const textMetrics = ctx.measureText(distanceText)
             const textWidth = textMetrics.width
             const padding = 6
@@ -395,14 +438,22 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
                 const y = startPanelY + panelPadding + index * rowHeight
                 const isSelected = index === selectedIndex
 
-                // Draw selection background for selected option
+                // Draw selection background for selected option (more prominent)
                 if (isSelected) {
-                    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)' // Light blue background
+                    // Draw a more prominent selection indicator
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)' // Slightly darker blue background
                     ctx.beginPath()
-                    const inset = 4
+                    const inset = 2
                     const rowBorderRadius = 8
                     ctx.roundRect(panelX + inset, y + inset, panelWidth - inset * 2, rowHeight - inset * 2, rowBorderRadius)
                     ctx.fill()
+                    
+                    // Draw border around selected option
+                    ctx.strokeStyle = '#2563eb'
+                    ctx.lineWidth = 2
+                    ctx.beginPath()
+                    ctx.roundRect(panelX + inset, y + inset, panelWidth - inset * 2, rowHeight - inset * 2, rowBorderRadius)
+                    ctx.stroke()
                 }
 
                 // Draw separator line (except for first item)
@@ -425,23 +476,29 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
                 ctx.fillText(option.icon, iconX, rowCenterY)
 
                 // Get transport type name
-                const typeName = option.type === 'car' ? 'Drive' :
+                const typeName = option.type === 'drive' ? 'Drive' :
                                 option.type === 'bus' ? 'Bus' :
-                                option.type === 'public_transport' ? 'Train' : 'Flight'
+                                option.type === 'train' ? 'Train' :
+                                option.type === 'flight' ? 'Flight' :
+                                option.type === 'walk' ? 'Walk' :
+                                option.type === 'bicycle' ? 'Bicycle' : 'Drive'
 
                 // Draw type and duration
                 ctx.font = isSelected ? 'bold 15px system-ui, -apple-system, sans-serif' : '15px system-ui, -apple-system, sans-serif'
                 ctx.textAlign = 'left'
                 ctx.fillStyle = isSelected ? '#2563eb' : '#1f2937' // Blue when selected
                 const textX = iconX + 38
-                ctx.fillText(`${typeName} - ${option.duration}`, textX, rowCenterY)
+                const durationText = option.duration || 'N/A'
+                ctx.fillText(`${typeName} - ${durationText}`, textX, rowCenterY)
 
-                // Draw cost on the right
-                ctx.font = isSelected ? 'bold 15px system-ui, -apple-system, sans-serif' : '15px system-ui, -apple-system, sans-serif'
-                ctx.textAlign = 'right'
-                ctx.fillStyle = isSelected ? '#2563eb' : '#9ca3af' // Blue when selected
-                const costX = panelX + panelWidth - panelPadding - 8
-                ctx.fillText(option.cost, costX, rowCenterY)
+                // Draw cost on the right (if available)
+                if (option.cost) {
+                    ctx.font = isSelected ? 'bold 15px system-ui, -apple-system, sans-serif' : '15px system-ui, -apple-system, sans-serif'
+                    ctx.textAlign = 'right'
+                    ctx.fillStyle = isSelected ? '#2563eb' : '#9ca3af' // Blue when selected
+                    const costX = panelX + panelWidth - panelPadding - 8
+                    ctx.fillText(option.cost, costX, rowCenterY)
+                }
             })
         }
 
@@ -471,20 +528,64 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
 
         canvasRefForRedraw.current = canvas
         const { x, y } = getCoordinates(canvasRef, e)
+        
+        // Also store in deps for access by other tools
+        if (_deps?.canvasRef) {
+            _deps.canvasRef.current = canvas
+        }
+
+        // First, check if clicking on any saved transit line's options panel
+        if (savedLines.length > 0 && setSavedLines) {
+            for (const savedLine of savedLines) {
+                if (savedLine.transitOptions && savedLine.transitOptions.length > 0) {
+                    const clickedOptionIndex = getClickedTransitOption(
+                        x, 
+                        y, 
+                        savedLine.start, 
+                        savedLine.end, 
+                        savedLine.transitOptions
+                    )
+
+                    if (clickedOptionIndex !== null) {
+                        // Clicked on a transit option - prevent event propagation
+                        e.preventDefault()
+                        e.stopPropagation()
+                        
+                        // Update the saved line's selected option
+                        setSavedLines((prev: TransitLine[]) => 
+                            prev.map(line => 
+                                line.id === savedLine.id 
+                                    ? { ...line, selectedOptionIndex: clickedOptionIndex }
+                                    : line
+                            )
+                        )
+
+                        // State update will trigger redraw through Canvas useEffect
+                        // No need to manually redraw here
+
+                        return // Don't start a new line or do anything else
+                    }
+                }
+            }
+        }
 
         // Check if clicking on transit options panel during drawing
-        if (isDrawing && startPoint && currentPoint && showDistance) {
-            const distance = calculateDistance(startPoint, currentPoint)
-            const transitOpts = generateTransitOptions(distance)
-            const clickedOptionIndex = getClickedTransitOption(x, y, startPoint, currentPoint, transitOpts)
+        if (isDrawing && startPoint && currentPoint && showDistance && fetchedTransitOptions.length > 0) {
+            const clickedOptionIndex = getClickedTransitOption(x, y, startPoint, currentPoint, fetchedTransitOptions)
 
             if (clickedOptionIndex !== null) {
-                // Clicked on a transit option
+                // Clicked on a transit option - prevent event propagation
+                e.preventDefault()
+                e.stopPropagation()
+                
+                // Update selected index
                 setSelectedTransitIndex(clickedOptionIndex)
 
+                // Redraw with selected option
                 if (canvasStateBeforeDrawing.current) {
                     ctx.putImageData(canvasStateBeforeDrawing.current, 0, 0)
-                    drawLine(ctx, startPoint, currentPoint, lineColor, lineWidth, distance, 'distance', animationFrame, transitOpts, clickedOptionIndex)
+                    const distance = actualDistance || calculateDistance(startPoint, currentPoint)
+                    drawLine(ctx, startPoint, currentPoint, lineColor, lineWidth, Math.round(distance), 'distance', animationFrame, fetchedTransitOptions, clickedOptionIndex)
                 }
                 return // Don't start a new line
             }
@@ -531,9 +632,10 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         // Snap to pin if hovering over one
         let endPoint = { x, y }
         let isSnappedToPin = false
+        let endPin: LocationPin | null = null
         if (pinIndex !== null && pinIndex !== startPinIndex) {
-            const pin = pins[pinIndex]
-            endPoint = { x: pin.x, y: pin.y }
+            endPin = pins[pinIndex]
+            endPoint = { x: endPin.x, y: endPin.y }
             isSnappedToPin = true
         }
 
@@ -548,20 +650,54 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         // Handle loader and distance display
         let displayMode: 'none' | 'loader' | 'distance' = 'none'
 
-        if (isSnappedToPin) {
-            if (showDistance) {
-                // Already showing distance, keep showing it
-                displayMode = 'distance'
-            } else if (showLoader) {
-                // Currently showing loader
-                displayMode = 'loader'
-            } else {
-                // Just snapped, show loader first
+        if (isSnappedToPin && startPinIndex !== null && endPin) {
+            const startPin = pins[startPinIndex]
+            
+            // Check if both pins have placeIds for API call
+            const canFetchFromAPI = startPin.placeId && endPin.placeId
+
+            if (canFetchFromAPI && !isFetchingTransit && fetchedTransitOptions.length === 0 && startPin.placeId && endPin.placeId) {
+                // Fetch transit options from API
+                setIsFetchingTransit(true)
                 setShowLoader(true)
                 setShowDistance(false)
                 displayMode = 'loader'
 
-                // After 500ms, show the distance
+                fetchTransitOptions(startPin.placeId, endPin.placeId)
+                    .then(options => {
+                        setFetchedTransitOptions(options)
+                        setIsFetchingTransit(false)
+                        setShowLoader(false)
+                        setShowDistance(true)
+                        // Extract distance from first option if available
+                        if (options.length > 0 && options[0].distance) {
+                            const distMatch = options[0].distance.match(/([\d.]+)\s*km/i)
+                            if (distMatch) {
+                                setActualDistance(parseFloat(distMatch[1]))
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching transit options:', error)
+                        setIsFetchingTransit(false)
+                        setShowLoader(false)
+                        setShowDistance(false)
+                    })
+            } else if (showDistance && fetchedTransitOptions.length > 0) {
+                // Already showing distance with fetched options
+                displayMode = 'distance'
+            } else if (showLoader || isFetchingTransit) {
+                // Currently showing loader or fetching
+                displayMode = 'loader'
+            } else if (!canFetchFromAPI) {
+                // No placeIds, use pixel-based distance calculation
+                const distance = calculateDistance(startPoint, endPoint)
+                setActualDistance(distance)
+                setShowLoader(true)
+                setShowDistance(false)
+                displayMode = 'loader'
+                
+                // After 500ms, show the distance with generated options
                 loaderTimeoutRef.current = window.setTimeout(() => {
                     setShowLoader(false)
                     setShowDistance(true)
@@ -572,16 +708,24 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
             // Not snapped to a pin, reset states
             setShowLoader(false)
             setShowDistance(false)
+            setFetchedTransitOptions([])
+            setIsFetchingTransit(false)
+            setActualDistance(null)
             displayMode = 'none'
         }
 
         // Restore the canvas to the state before drawing started
         ctx.putImageData(canvasStateBeforeDrawing.current, 0, 0)
 
-        // Draw the preview line
-        const distance = calculateDistance(startPoint, endPoint)
-        const transitOpts = displayMode === 'distance' ? generateTransitOptions(distance) : undefined
-        drawLine(ctx, startPoint, endPoint, lineColor, lineWidth, distance, displayMode, animationFrame, transitOpts, selectedTransitIndex)
+        // Draw the preview line (use selected index if available)
+        const distance = actualDistance || calculateDistance(startPoint, endPoint)
+        const transitOpts = displayMode === 'distance' 
+            ? (fetchedTransitOptions.length > 0 ? fetchedTransitOptions : undefined)
+            : undefined
+        const optionIndexToShow = transitOpts && transitOpts.length > 0 
+            ? Math.min(selectedTransitIndex, transitOpts.length - 1)
+            : 0
+        drawLine(ctx, startPoint, endPoint, lineColor, lineWidth, Math.round(distance), displayMode, animationFrame, transitOpts, optionIndexToShow)
     }
 
     const onMouseUp = (
@@ -607,25 +751,37 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
             const endPin = pins[endPinIndex]
             const endPoint = { x: endPin.x, y: endPin.y }
 
-            const distance = calculateDistance(startPoint, endPoint)
-            const transitOpts = generateTransitOptions(distance)
+            const distance = actualDistance || calculateDistance(startPoint, endPoint)
+            const transitOpts = fetchedTransitOptions.length > 0 ? fetchedTransitOptions : undefined
 
-            // Restore canvas state and draw final line
+            // Restore canvas state and draw final line with selected option
             if (canvasStateBeforeDrawing.current) {
                 ctx.putImageData(canvasStateBeforeDrawing.current, 0, 0)
             }
-            drawLine(ctx, startPoint, endPoint, lineColor, lineWidth, distance, 'distance', 0, transitOpts, selectedTransitIndex)
+            
+            // Ensure selected index is valid
+            const validSelectedIndex = transitOpts && transitOpts.length > 0
+                ? Math.min(selectedTransitIndex, transitOpts.length - 1)
+                : 0
+            
+            drawLine(ctx, startPoint, endPoint, lineColor, lineWidth, Math.round(distance), 'distance', 0, transitOpts, validSelectedIndex)
 
-            // Save the line
+            // Save the line with selected option
             const newLine: TransitLine = {
                 start: startPoint,
                 end: endPoint,
-                distance,
+                distance: Math.round(distance),
                 id: Date.now(),
                 transitOptions: transitOpts,
-                selectedOptionIndex: selectedTransitIndex
+                selectedOptionIndex: validSelectedIndex,
+                lineColor,
+                lineWidth
             }
-            _setLines((prev: TransitLine[]) => [...prev, newLine])
+            
+            // Update saved lines if setter is provided
+            if (setSavedLines) {
+                setSavedLines((prev: TransitLine[]) => [...prev, newLine])
+            }
 
             // Save to history
             if (deps.saveToHistory) {
@@ -646,6 +802,9 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         setShowLoader(false)
         setShowDistance(false)
         setSelectedTransitIndex(0)
+        setFetchedTransitOptions([])
+        setIsFetchingTransit(false)
+        setActualDistance(null)
         canvasStateBeforeDrawing.current = null
 
         // Clear timeout if any
@@ -680,6 +839,9 @@ export const useTransitTool = (pins: LocationPin[]): CanvasTool => {
         setShowLoader(false)
         setShowDistance(false)
         setSelectedTransitIndex(0)
+        setFetchedTransitOptions([])
+        setIsFetchingTransit(false)
+        setActualDistance(null)
         canvasStateBeforeDrawing.current = null
 
         // Clear timeout if any
