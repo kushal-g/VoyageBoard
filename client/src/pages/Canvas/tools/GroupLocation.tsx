@@ -8,6 +8,13 @@ interface Point {
     y: number
 }
 
+interface SelectionBox {
+    startX: number
+    startY: number
+    endX: number
+    endY: number
+}
+
 export const useGroupLocationTool = (
     pins: LocationPin[],
     setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
@@ -19,8 +26,12 @@ export const useGroupLocationTool = (
     const [selectedPinIds, setSelectedPinIds] = useState<Set<number>>(new Set())
     const [hoverPinIndex, setHoverPinIndex] = useState<number | null>(null)
     const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
+    const [isSelecting, setIsSelecting] = useState(false)
+    const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null)
     const baseCanvasState = useRef<ImageData | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const selectionStartPoint = useRef<Point | null>(null)
+    const hasDragged = useRef(false)
 
     const getCoordinates = (
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -56,70 +67,178 @@ export const useGroupLocationTool = (
         return null
     }
 
-    // Draw glow effect around selected pins
-    const drawGlowEffect = (
+    // Draw selection indicator (checkmark circle) for selected pins
+    const drawSelectionIndicator = (
         ctx: CanvasRenderingContext2D,
         x: number,
         y: number,
-        color: string,
-        size: number = 40
+        color: string
     ) => {
         ctx.save()
+        
+        // Position checkmark at top-right of flag icon
+        // Flag icon is at (x, y) with flag extending to the right
+        const checkX = x + 10
+        const checkY = y - 18
+        const radius = 14
+        
+        // Draw circle background with shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)'
+        ctx.shadowBlur = 4
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 2
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(checkX, checkY, radius, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        
+        // Draw white checkmark
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 2.5
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+        // Checkmark path: bottom-left to center to top-right
+        ctx.moveTo(checkX - 5, checkY)
+        ctx.lineTo(checkX - 1, checkY + 4)
+        ctx.lineTo(checkX + 5, checkY - 3)
+        ctx.stroke()
+        
+        ctx.restore()
+    }
 
-        // Create multiple layers for the glow effect
-        for (let i = 3; i >= 0; i--) {
-            const radius = size + (i * 5)
-            const alpha = 0.15 - (i * 0.03)
+    // Draw subtle border for grouped pins (only when hovering or active)
+    const drawGroupBorder = (
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        color: string
+    ) => {
+        ctx.save()
+        
+        const radius = 25
+        
+        // Draw subtle dashed border
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.setLineDash([4, 4])
+        ctx.beginPath()
+        ctx.arc(x, y, radius, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.setLineDash([])
+        
+        ctx.restore()
+    }
 
-            ctx.beginPath()
-            ctx.arc(x, y, radius, 0, Math.PI * 2) // Match flag pole position
-            ctx.fillStyle = `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`
-            ctx.fill()
-        }
+    // Draw selection box
+    const drawSelectionBox = (
+        ctx: CanvasRenderingContext2D,
+        box: SelectionBox,
+        color: string = '#007AFF'
+    ) => {
+        ctx.save()
+        
+        const x = Math.min(box.startX, box.endX)
+        const y = Math.min(box.startY, box.endY)
+        const width = Math.abs(box.endX - box.startX)
+        const height = Math.abs(box.endY - box.startY)
+
+        // Draw filled rectangle with transparency
+        ctx.fillStyle = `${color}20` // 20 in hex = ~12.5% opacity
+        ctx.fillRect(x, y, width, height)
+
+        // Draw border
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.setLineDash([5, 5])
+        ctx.strokeRect(x, y, width, height)
+        ctx.setLineDash([])
 
         ctx.restore()
     }
 
-    // Redraw all pins with glow effects
-    const redrawPinsWithGlow = (
+    // Check if a pin is inside the selection box
+    const isPinInSelectionBox = (pin: LocationPin, box: SelectionBox): boolean => {
+        const x = Math.min(box.startX, box.endX)
+        const y = Math.min(box.startY, box.endY)
+        const width = Math.abs(box.endX - box.startX)
+        const height = Math.abs(box.endY - box.startY)
+
+        return pin.x >= x && pin.x <= x + width && pin.y >= y && pin.y <= y + height
+    }
+
+    // Redraw selection indicators and selection box
+    const redrawSelectionOverlay = (
         canvas: HTMLCanvasElement,
         ctx: CanvasRenderingContext2D,
         saveBase: boolean = false
     ) => {
-        // If we need to save the base state (without glows), do it now
+        // If we need to save the base state (without overlays), do it now
         if (saveBase || !baseCanvasState.current) {
             baseCanvasState.current = ctx.getImageData(0, 0, canvas.width, canvas.height)
         }
 
-        // Restore the base canvas state (without any glows)
+        // Restore the base canvas state (without any overlays)
         if (baseCanvasState.current) {
             ctx.putImageData(baseCanvasState.current, 0, 0)
         }
 
-        // Draw glow for selected pins
+        // Draw selection box if active
+        if (selectionBox) {
+            drawSelectionBox(ctx, selectionBox, currentGroupColor)
+        }
+
+        // Draw selection indicators (checkmarks) for actively selected pins only
         pins.forEach((pin) => {
             if (selectedPinIds.has(pin.id)) {
-                drawGlowEffect(ctx, pin.x, pin.y, currentGroupColor)
+                drawSelectionIndicator(ctx, pin.x, pin.y, currentGroupColor)
             }
         })
 
-        // Draw glow for grouped pins
-        groups.forEach(group => {
-            pins.forEach(pin => {
-                if (group.pinIds.includes(pin.id)) {
-                    drawGlowEffect(ctx, pin.x, pin.y, group.color)
+        // Draw subtle border for grouped pins only when hovering
+        if (hoverPinIndex !== null) {
+            const hoveredPin = pins[hoverPinIndex]
+            if (hoveredPin) {
+                const group = groups.find(g => g.pinIds.includes(hoveredPin.id))
+                if (group && !selectedPinIds.has(hoveredPin.id)) {
+                    drawGroupBorder(ctx, hoveredPin.x, hoveredPin.y, group.color)
                 }
-            })
+            }
+        }
+    }
+
+    // Get the next available day number
+    const getNextDayNumber = (): number => {
+        // Find the highest day number in existing groups
+        let maxDay = 0
+        groups.forEach(group => {
+            const match = group.label.match(/^Day (\d+)/i)
+            if (match) {
+                const dayNum = parseInt(match[1], 10)
+                if (dayNum > maxDay) {
+                    maxDay = dayNum
+                }
+            }
         })
+        return maxDay + 1
     }
 
     const createGroup = () => {
         if (selectedPinIds.size === 0) return
 
+        // Auto-generate day label if not provided
+        const dayLabel = currentGroupLabel.trim() || `Day ${getNextDayNumber()}`
+
         const newGroup: LocationGroup = {
             id: Date.now().toString(),
             color: currentGroupColor,
-            label: currentGroupLabel || `Day ${groups.length + 1}`,
+            label: dayLabel,
             pinIds: Array.from(selectedPinIds)
         }
 
@@ -134,22 +253,27 @@ export const useGroupLocationTool = (
         setGroups(prev => [...prev, newGroup])
         setActiveGroupId(newGroup.id)
         setSelectedPinIds(new Set())
-        setCurrentGroupLabel('')
+        setCurrentGroupLabel('') // Clear label for next group
+        setSelectionBox(null) // Clear selection box
 
-        // Redraw canvas with updated colors
+        // Wait for Location tool to redraw pins with new colors, then update base state
         setTimeout(() => {
             if (canvasRef.current) {
                 const ctx = canvasRef.current.getContext('2d')
                 if (ctx) {
-                    // Canvas redraw will be handled by Location tool's useEffect when pins change
+                    // Save the clean canvas state (without selection indicators)
                     baseCanvasState.current = ctx.getImageData(
                         0, 0,
                         canvasRef.current.width,
                         canvasRef.current.height
                     )
+                    // Redraw to ensure clean state
+                    if (baseCanvasState.current) {
+                        ctx.putImageData(baseCanvasState.current, 0, 0)
+                    }
                 }
             }
-        }, 50)
+        }, 100)
     }
 
     const deleteGroup = (groupId: string) => {
@@ -174,25 +298,24 @@ export const useGroupLocationTool = (
             setActiveGroupId(null)
         }
 
-        // Redraw without the deleted group and update base state
+        // Wait for Location tool to redraw pins, then update base state
         setTimeout(() => {
             if (canvasRef.current) {
                 const ctx = canvasRef.current.getContext('2d')
                 if (ctx) {
-                    redrawPinsWithGlow(canvasRef.current, ctx, false)
-                    // Update base state after redraw
-                    setTimeout(() => {
-                        if (canvasRef.current && ctx) {
-                            baseCanvasState.current = ctx.getImageData(
-                                0, 0,
-                                canvasRef.current.width,
-                                canvasRef.current.height
-                            )
-                        }
-                    }, 10)
+                    // Save the clean canvas state (without selection indicators)
+                    baseCanvasState.current = ctx.getImageData(
+                        0, 0,
+                        canvasRef.current.width,
+                        canvasRef.current.height
+                    )
+                    // Redraw to ensure clean state
+                    if (baseCanvasState.current) {
+                        ctx.putImageData(baseCanvasState.current, 0, 0)
+                    }
                 }
             }
-        }, 0)
+        }, 100)
     }
 
     const updateGroupLabel = (groupId: string, newLabel: string) => {
@@ -237,10 +360,29 @@ export const useGroupLocationTool = (
                 return newSet
             })
 
-            // Redraw with glow
+            // Redraw with selection indicators
             setTimeout(() => {
-                redrawPinsWithGlow(canvas, ctx, isFirstInteraction)
+                redrawSelectionOverlay(canvas, ctx, isFirstInteraction)
             }, 0)
+        } else {
+            // Prepare for potential selection box when clicking on empty space
+            // Only start selection if user drags (not just clicks)
+            selectionStartPoint.current = { x, y }
+            hasDragged.current = false
+            
+            // If not holding Shift/Ctrl, clear previous selection on click
+            if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                setSelectedPinIds(new Set())
+                setSelectionBox(null)
+                setTimeout(() => {
+                    if (canvasRef.current) {
+                        const ctx = canvasRef.current.getContext('2d')
+                        if (ctx) {
+                            redrawSelectionOverlay(canvasRef.current, ctx, false)
+                        }
+                    }
+                }, 0)
+            }
         }
     }
 
@@ -259,8 +401,51 @@ export const useGroupLocationTool = (
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
-        // Redraw with glow effects
-        redrawPinsWithGlow(canvas, ctx)
+        // Update selection box if dragging
+        if (selectionStartPoint.current) {
+            const dx = x - selectionStartPoint.current.x
+            const dy = y - selectionStartPoint.current.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            
+            // Only start selection box if user has dragged more than 5 pixels
+            if (distance > 5) {
+                if (!isSelecting) {
+                    setIsSelecting(true)
+                }
+                hasDragged.current = true
+                
+                setSelectionBox({
+                    startX: selectionStartPoint.current.x,
+                    startY: selectionStartPoint.current.y,
+                    endX: x,
+                    endY: y
+                })
+
+                // Update selected pins based on selection box
+                const box: SelectionBox = {
+                    startX: selectionStartPoint.current.x,
+                    startY: selectionStartPoint.current.y,
+                    endX: x,
+                    endY: y
+                }
+
+                // If holding Shift/Ctrl, add to selection, otherwise replace
+                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                    const pinsInBox = pins.filter(pin => isPinInSelectionBox(pin, box))
+                    setSelectedPinIds(prev => {
+                        const newSet = new Set(prev)
+                        pinsInBox.forEach(pin => newSet.add(pin.id))
+                        return newSet
+                    })
+                } else {
+                    const pinsInBox = pins.filter(pin => isPinInSelectionBox(pin, box))
+                    setSelectedPinIds(new Set(pinsInBox.map(pin => pin.id)))
+                }
+            }
+        }
+
+        // Redraw with selection indicators and selection box
+        redrawSelectionOverlay(canvas, ctx)
     }
 
     const onMouseUp = (
@@ -268,15 +453,40 @@ export const useGroupLocationTool = (
         _e: React.MouseEvent<HTMLCanvasElement>,
         _deps: Record<string, any>
     ) => {
-        // Nothing to do on mouse up for this tool
+        // Finish selection box
+        if (isSelecting || selectionStartPoint.current) {
+            setIsSelecting(false)
+            
+            // If user didn't drag, it was just a click - clear selection box
+            if (!hasDragged.current) {
+                setSelectionBox(null)
+            }
+            
+            selectionStartPoint.current = null
+            hasDragged.current = false
+        }
     }
 
     const onMouseLeave = (
-        _canvasRef: React.RefObject<HTMLCanvasElement | null>,
+        canvasRef: React.RefObject<HTMLCanvasElement | null>,
         _e: React.MouseEvent<HTMLCanvasElement>,
         _deps: Record<string, any>
     ) => {
         setHoverPinIndex(null)
+        
+        // Finish selection box if active
+        if (isSelecting) {
+            setIsSelecting(false)
+            selectionStartPoint.current = null
+        }
+        
+        // Redraw without selection box
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d')
+            if (ctx) {
+                redrawSelectionOverlay(canvasRef.current, ctx, false)
+            }
+        }
     }
 
     const toolbar = (deps: Record<string, any>) => {
@@ -321,7 +531,7 @@ export const useGroupLocationTool = (
 
     return {
         toolbar,
-        cursor: hoverPinIndex !== null ? 'pointer' : 'default',
+        cursor: isSelecting ? 'crosshair' : (hoverPinIndex !== null ? 'pointer' : 'default'),
         onMouseDown,
         onMouseMove,
         onMouseUp,

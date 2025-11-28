@@ -82,9 +82,12 @@ export const useLocationTool = (
             const ctx = canvas.getContext('2d')
             if (!ctx) return
 
-            // Only redraw if we have pins to draw
+            // Clear the entire canvas first to remove any overlays/indicators
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+            // Redraw all locations with flag + badge
             if (pins.length > 0) {
-                // Redraw all locations with flag + badge
                 pins.forEach(pin => {
                     // Draw location with flag + badge (use pin's color if stored, otherwise default)
                     const color = (pin as any).color || pinColor

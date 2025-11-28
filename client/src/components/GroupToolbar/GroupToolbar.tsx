@@ -143,7 +143,7 @@ export default function GroupToolbar({
                 type="text"
                 value={groupLabel}
                 onChange={(e) => setGroupLabel(e.target.value)}
-                placeholder="e.g., Europe Trip"
+                placeholder={`Day ${groups.length + 1}`}
                 className="group-label-input"
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
@@ -161,10 +161,11 @@ export default function GroupToolbar({
             onClick={onCreateGroup}
             disabled={selectedPinCount === 0}
             className="create-group-button"
-            aria-label="Group Locations"
+            aria-label="Create Day"
+            title={selectedPinCount > 0 ? `Create day with ${selectedPinCount} location${selectedPinCount > 1 ? 's' : ''}` : 'Select locations to create a day'}
           >
             <LayersIcon />
-            <span>Group Locations ({selectedPinCount})</span>
+            <span>Create Day ({selectedPinCount})</span>
           </Button>
         </ToolbarGroup>
 
@@ -176,10 +177,11 @@ export default function GroupToolbar({
                 data-style="ghost"
                 onClick={() => setShowGroupsMenu(!showGroupsMenu)}
                 className="control-button"
-                aria-label="Groups"
+                aria-label="Days"
+                title={`View ${groups.length} day${groups.length !== 1 ? 's' : ''}`}
               >
                 <LayersIcon />
-                <span>Groups ({groups.length})</span>
+                <span>Days ({groups.length})</span>
               </Button>
               {showGroupsMenu && (
                 <div className="popover groups-popover">
