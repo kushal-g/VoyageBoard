@@ -76,6 +76,7 @@ export const useLocationTool = (
     const [hoverPinIndex, setHoverPinIndex] = useState<number | null>(null)
     const [isEditingLocation, setIsEditingLocation] = useState(false)
     const [isSelectMode, setIsSelectMode] = useState(false)
+    const [isDeleteMode, setIsDeleteMode] = useState(false)
     const canvasRefForRedraw = useRef<HTMLCanvasElement | null>(null)
     const canvasStateBeforeDrag = useRef<ImageData | null>(null)
     const mouseDownPosition = useRef<Point | null>(null)
@@ -263,8 +264,46 @@ export const useLocationTool = (
     // Handle Select mode toggle
     const handleSelectModeToggle = () => {
         setIsSelectMode(prev => !prev)
+        setIsDeleteMode(false) // Turn off delete mode when enabling select mode
         setIsEditingLocation(false)
         setSelectedPinIndex(null)
+    }
+
+    const handleDeleteModeToggle = () => {
+        setIsDeleteMode(prev => !prev)
+        setIsSelectMode(false) // Turn off select mode when enabling delete mode
+        setIsEditingLocation(false)
+        setSelectedPinIndex(null)
+    }
+
+    const handleDeletePin = (pinIndex: number, deps: Record<string, any>) => {
+        if (pinIndex === null || pinIndex < 0 || pinIndex >= pins.length) return
+
+        // Remove the pin from the array
+        setPins(prev => {
+            const newPins = prev.filter((_, index) => index !== pinIndex)
+            return newPins
+        })
+
+        // Clear canvas and trigger redraw immediately
+        if (canvasRefForRedraw.current) {
+            const canvas = canvasRefForRedraw.current
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+                // Clear canvas
+                ctx.fillStyle = '#ffffff'
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+            }
+        }
+
+        // Save to history after a small delay to ensure state update is complete
+        if (deps.saveToHistory) {
+            setTimeout(() => {
+                if (deps.saveToHistory) {
+                    deps.saveToHistory()
+                }
+            }, 100)
+        }
     }
 
     // Handle adding location via button click - add immediately to center of canvas
@@ -432,6 +471,12 @@ export const useLocationTool = (
         // Check if clicking on an existing location flag
         const pinIndex = findPinAtPosition(x, y)
 
+        // Handle delete mode - delete the pin if clicked
+        if (isDeleteMode && pinIndex !== null) {
+            handleDeletePin(pinIndex, _deps)
+            return
+        }
+
         // Only allow dragging in Select mode
         if (isSelectMode && pinIndex !== null) {
             // Select this location and prepare for dragging
@@ -447,12 +492,12 @@ export const useLocationTool = (
 
             // Start dragging existing location
             setIsDragging(true)
-        } else if (!isSelectMode) {
-            // When not in Select mode, clicking on canvas does nothing
+        } else if (!isSelectMode && !isDeleteMode) {
+            // When not in Select or Delete mode, clicking on canvas does nothing
             // (locations are added via button click only)
             return
         } else {
-            // In Select mode but not clicking on a location - deselect
+            // In Select/Delete mode but not clicking on a location - deselect
             setSelectedPinIndex(null)
             setIsEditingLocation(false)
         }
@@ -508,7 +553,7 @@ export const useLocationTool = (
                 // Draw the location at new position
                 drawLocation(ctx, x, y, color, pin.location)
             }
-        } else if (isSelectMode) {
+        } else if (isSelectMode || isDeleteMode) {
             // Check if hovering over a location flag (for cursor change)
             const pinIndex = findPinAtPosition(x, y)
             setHoverPinIndex(pinIndex)
@@ -618,13 +663,19 @@ export const useLocationTool = (
             inputRef={inputRef}
             isSelectMode={isSelectMode}
             onSelectModeToggle={handleSelectModeToggle}
+            isDeleteMode={isDeleteMode}
+            onDeleteModeToggle={handleDeleteModeToggle}
             isLoadingSuggestions={isLoadingSuggestions}
         />
     )
 
     return {
         toolbar,
-        cursor: isSelectMode ? (hoverPinIndex !== null ? 'move' : 'default') : 'default',
+        cursor: isDeleteMode 
+            ? (hoverPinIndex !== null ? 'pointer' : 'default')
+            : isSelectMode 
+                ? (hoverPinIndex !== null ? 'move' : 'default') 
+                : 'default',
         onMouseDown,
         onMouseMove,
         onMouseUp,

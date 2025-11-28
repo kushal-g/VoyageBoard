@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { Toolbar, ToolbarGroup } from '@/components/tiptap-ui-primitive/toolbar'
 import { Button } from '@/components/tiptap-ui-primitive/button'
 import { UndoIcon } from '@/components/icons/undo-icon'
 import { RedoIcon } from '@/components/icons/redo-icon'
 import { LocationPinIcon } from '@/components/icons/location-pin-icon'
 import { DragMove2LineIcon } from '@/components/icons/drag-move-2-line-icon'
+import { TrashIcon } from '@/components/icons/trash-icon'
 import './LocationToolbar.css'
 
 interface LocationToolbarDeps {
@@ -28,6 +29,8 @@ interface LocationToolbarProps {
   inputRef: React.RefObject<HTMLInputElement | null>
   isSelectMode: boolean
   onSelectModeToggle: () => void
+  isDeleteMode: boolean
+  onDeleteModeToggle: () => void
   isLoadingSuggestions?: boolean
 }
 
@@ -43,6 +46,8 @@ export default function LocationToolbar({
   inputRef,
   isSelectMode,
   onSelectModeToggle,
+  isDeleteMode,
+  onDeleteModeToggle,
   isLoadingSuggestions = false,
 }: LocationToolbarProps) {
   const locationInputRef = useRef<HTMLDivElement>(null)
@@ -88,7 +93,7 @@ export default function LocationToolbar({
           </Button>
         </ToolbarGroup>
 
-        {/* Group 2: Select Button */}
+        {/* Group 2: Select and Delete Buttons */}
         <ToolbarGroup className="toolbar-group">
           <Button
             variant="icon"
@@ -99,6 +104,16 @@ export default function LocationToolbar({
             title="Enable dragging mode for location flags"
           >
             <DragMove2LineIcon />
+          </Button>
+          <Button
+            variant="icon"
+            data-style="ghost"
+            data-active={isDeleteMode}
+            onClick={onDeleteModeToggle}
+            aria-label="Delete Mode"
+            title="Click on location flags to delete them"
+          >
+            <TrashIcon />
           </Button>
         </ToolbarGroup>
 
