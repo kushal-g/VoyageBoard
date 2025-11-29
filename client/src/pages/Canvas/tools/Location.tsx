@@ -8,39 +8,7 @@ interface Point {
     y: number
 }
 
-// Static list of popular destinations
-const DESTINATIONS = [
-    'Paris, France',
-    'Tokyo, Japan',
-    'New York, USA',
-    'London, UK',
-    'Rome, Italy',
-    'Barcelona, Spain',
-    'Dubai, UAE',
-    'Singapore',
-    'Sydney, Australia',
-    'Bangkok, Thailand',
-    'Istanbul, Turkey',
-    'Amsterdam, Netherlands',
-    'Los Angeles, USA',
-    'Hong Kong',
-    'Berlin, Germany',
-    'Vienna, Austria',
-    'Prague, Czech Republic',
-    'Bali, Indonesia',
-    'Santorini, Greece',
-    'Maldives',
-    'Reykjavik, Iceland',
-    'Cairo, Egypt',
-    'Marrakech, Morocco',
-    'Mumbai, India',
-    'Rio de Janeiro, Brazil',
-    'Cape Town, South Africa',
-    'Seoul, South Korea',
-    'Mexico City, Mexico',
-    'Venice, Italy',
-    'Florence, Italy'
-].sort()
+// Removed static DESTINATIONS list - we rely on the backend API for autocomplete
 
 interface TransitLine {
     start: { x: number; y: number }
@@ -117,24 +85,19 @@ export const useLocationTool = (
                     setFilteredDestinations(suggestions)
                     setShowSuggestions(suggestions.length > 0)
                 } else {
-                    // Fallback to static list if API fails
-                    console.warn('API request failed, using fallback list')
+                    // API request failed - log error and show empty results
+                    const errorText = await response.text().catch(() => 'Unknown error')
+                    console.error('API request failed:', response.status, errorText)
                     setDestinationPredictions([])
-                    const filtered = DESTINATIONS.filter(dest =>
-                        dest.toLowerCase().includes(pinLocation.toLowerCase())
-                    ).slice(0, 5)
-                    setFilteredDestinations(filtered)
-                    setShowSuggestions(filtered.length > 0)
+                    setFilteredDestinations([])
+                    setShowSuggestions(false)
                 }
             } catch (error) {
-                // Fallback to static list if API is unavailable
-                console.warn('API request error, using fallback list:', error)
+                // API is unavailable - log error and show empty results
+                console.error('API request error:', error)
                 setDestinationPredictions([])
-                const filtered = DESTINATIONS.filter(dest =>
-                    dest.toLowerCase().includes(pinLocation.toLowerCase())
-                ).slice(0, 5)
-                setFilteredDestinations(filtered)
-                setShowSuggestions(filtered.length > 0)
+                setFilteredDestinations([])
+                setShowSuggestions(false)
             } finally {
                 setIsLoadingSuggestions(false)
             }

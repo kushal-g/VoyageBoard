@@ -12,6 +12,13 @@ import {
     restoreImageDataFromBase64,
     type SerializedCanvasState
 } from '../../utils/canvasSerialization'
+// Import SVG icons for transit options
+import carIcon from '@/components/icons/car-sport-outline (1).svg'
+import busIcon from '@/components/icons/bus-outline.svg'
+import trainIcon from '@/components/icons/train-outline.svg'
+import airplaneIcon from '@/components/icons/airplane-outline.svg'
+import walkIcon from '@/components/icons/walk-outline.svg'
+import bicycleIcon from '@/components/icons/bicycle-outline.svg'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -75,6 +82,7 @@ export interface TransitLine {
     selectedOptionIndex?: number
     lineColor?: string
     lineWidth?: number
+    isDashed?: boolean // true for dashed, false for solid line
 }
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(({ 
@@ -95,9 +103,11 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     const [pins, setPins] = useState<LocationPin[]>([])
     const [groups, setGroups] = useState<LocationGroup[]>([])
     const [transitLines, setTransitLines] = useState<TransitLine[]>([])
+    const [expandedTransitLineId, setExpandedTransitLineId] = useState<number | null>(null) // Track which line shows options
     const addedPlacesRef = useRef<Set<string>>(new Set())
     const isInitializedRef = useRef(false)
     const isRestoringRef = useRef(false)
+    const iconCacheRef = useRef<Map<string, HTMLImageElement>>(new Map()) // Cache for preloaded icons
 
     // Notify parent of changes
     useEffect(() => {
@@ -117,6 +127,29 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             onTransitLinesChange(transitLines)
         }
     }, [transitLines, onTransitLinesChange])
+
+    // Preload all transit icons as images for canvas drawing
+    useEffect(() => {
+        const iconSrcMap: Record<string, string> = {
+            'car-sport-outline': carIcon,
+            'bus-outline': busIcon,
+            'train-outline': trainIcon,
+            'airplane-outline': airplaneIcon,
+            'walk-outline': walkIcon,
+            'bicycle-outline': bicycleIcon
+        }
+        
+        const cache = iconCacheRef.current
+        Object.entries(iconSrcMap).forEach(([iconName, iconSrc]) => {
+            if (!cache.has(iconName)) {
+                const img = new Image()
+                img.onload = () => {
+                    cache.set(iconName, img)
+                }
+                img.src = iconSrc
+            }
+        })
+    }, [])
 
     // Add places from Idea Dump to canvas
     useEffect(() => {
@@ -168,7 +201,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     const doodleTool = useDoodleTool()
     const eraserTool = useEraserTool(pins) // Pass pins to eraser to check for locations
     const locationTool = useLocationTool(pins, setPins, transitLines)
-    const transitTool = useTransitTool(pins, transitLines, setTransitLines)
+    const transitTool = useTransitTool(pins, transitLines, setTransitLines, expandedTransitLineId, setExpandedTransitLineId)
     const groupLocationTool = useGroupLocationTool(pins, setPins, groups, setGroups)
 
     // Map of tools
@@ -469,24 +502,64 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         }
     }
 
+    // Helper function to draw an icon on canvas
+    const drawIcon = useCallback((ctx: CanvasRenderingContext2D, iconName: string, x: number, y: number, size: number = 20, color: string = '#1f2937') => {
+        const cachedIcon = iconCacheRef.current.get(iconName)
+        if (cachedIcon && cachedIcon.complete) {
+            ctx.save()
+            ctx.globalAlpha = 1
+            const iconSize = size
+            const iconX = x - iconSize / 2
+            const iconY = y - iconSize / 2
+            
+            // Create a temporary canvas to apply color filter
+            const tempCanvas = document.createElement('canvas')
+            tempCanvas.width = iconSize
+            tempCanvas.height = iconSize
+            const tempCtx = tempCanvas.getContext('2d')
+            if (tempCtx) {
+                tempCtx.drawImage(cachedIcon, 0, 0, iconSize, iconSize)
+                tempCtx.globalCompositeOperation = 'source-in'
+                tempCtx.fillStyle = color
+                tempCtx.fillRect(0, 0, iconSize, iconSize)
+            }
+            ctx.drawImage(tempCanvas, iconX, iconY)
+            ctx.restore()
+        } else {
+            // Fallback: draw a simple shape if icon not loaded yet
+            ctx.save()
+            ctx.fillStyle = color
+            ctx.beginPath()
+            ctx.arc(x, y, size / 4, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.restore()
+        }
+    }, [])
+
     // Helper function to redraw a transit line
-    const redrawTransitLine = useCallback((ctx: CanvasRenderingContext2D, line: TransitLine) => {
+    const redrawTransitLine = useCallback((ctx: CanvasRenderingContext2D, line: TransitLine, expandedLineId: number | null) => {
         ctx.save()
 
         const color = line.lineColor || '#000000'
         const width = line.lineWidth || 3
+        const isDashed = line.isDashed !== false // Default to dashed if not specified
 
         // Draw the line
         ctx.strokeStyle = color
         ctx.lineWidth = width
         ctx.lineCap = 'round'
-        ctx.setLineDash([10, 5])
+        if (isDashed) {
+            ctx.setLineDash([12, 6]) // Dashed line pattern (12px dash, 6px gap) - more visible
+        } else {
+            ctx.setLineDash([]) // Solid line - empty array means solid
+        }
 
         ctx.beginPath()
         ctx.moveTo(line.start.x, line.start.y)
         ctx.lineTo(line.end.x, line.end.y)
         ctx.stroke()
 
+        // Reset line dash after drawing
         ctx.setLineDash([])
 
         // Draw arrow head
@@ -515,11 +588,27 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
 
+        // Extract distance from transit options if available (more accurate than stored distance)
         let distanceText = `${line.distance} km`
-        if (line.transitOptions && line.transitOptions.length > 0 && line.transitOptions[0].distance) {
-            const distMatch = line.transitOptions[0].distance.match(/([\d.]+)\s*km/i)
-            if (distMatch) {
-                distanceText = `${parseFloat(distMatch[1]).toFixed(0)} km`
+        if (line.transitOptions && line.transitOptions.length > 0) {
+            // Try to get distance from the selected option, or first option
+            const selectedIndex = line.selectedOptionIndex || 0
+            const option = line.transitOptions[selectedIndex] || line.transitOptions[0]
+            if (option && option.distance) {
+                const distStr = option.distance.toString()
+                // Match format like "5.2 km (3.2 mi)" or "5.2 km"
+                const distMatch = distStr.match(/([\d.]+)\s*km/i)
+                if (distMatch) {
+                    const distanceKm = parseFloat(distMatch[1])
+                    distanceText = `${Math.round(distanceKm)} km`
+                } else {
+                    // Try meters format
+                    const mMatch = distStr.match(/([\d.]+)\s*m/i)
+                    if (mMatch) {
+                        const distanceM = parseFloat(mMatch[1])
+                        distanceText = `${Math.round(distanceM / 1000)} km`
+                    }
+                }
             }
         }
 
@@ -547,13 +636,20 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         ctx.fillStyle = color
         ctx.fillText(distanceText, midX, midY + labelOffsetY)
 
-        // Draw transit options panel with selected option
-        if (line.transitOptions && line.transitOptions.length > 0) {
+        // Draw transit options panel ONLY when this line is expanded (clicked)
+        const isExpanded = expandedLineId === line.id
+        const shouldShowOptions = isExpanded && line.transitOptions && line.transitOptions.length > 0
+        // Show empty state if expanded and transit options are empty array (tried to fetch but got nothing)
+        // Don't show if transitOptions is undefined (never tried to fetch - no placeIds)
+        const shouldShowEmptyState = isExpanded && Array.isArray(line.transitOptions) && line.transitOptions.length === 0
+        
+        // Hover preview: show a simplified preview on hover (if not expanded)
+        if (shouldShowOptions) {
             const startPanelY = midY + 30
-            const panelWidth = 280
-            const rowHeight = 45
-            const panelPadding = 12
-            const totalHeight = line.transitOptions.length * rowHeight + panelPadding * 2
+            const panelWidth = 260
+            const rowHeight = 40
+            const panelPadding = 10
+            const totalHeight = (line.transitOptions?.length || 0) * rowHeight + panelPadding * 2
             const panelX = midX - panelWidth / 2
 
             // Draw container
@@ -570,7 +666,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             ctx.shadowOffsetY = 0
 
             // Draw options
-            line.transitOptions.forEach((option, index) => {
+            line.transitOptions?.forEach((option, index) => {
                 const y = startPanelY + panelPadding + index * rowHeight
                 const isSelected = index === (line.selectedOptionIndex || 0)
 
@@ -597,14 +693,22 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                     ctx.stroke()
                 }
 
-                const iconX = panelX + panelPadding + 8
+                const iconX = panelX + panelPadding + 18
                 const rowCenterY = y + rowHeight / 2
-
-                ctx.font = '24px Arial, sans-serif'
-                ctx.textAlign = 'left'
-                ctx.textBaseline = 'middle'
-                ctx.fillStyle = isSelected ? '#2563eb' : '#1f2937'
-                ctx.fillText(option.icon, iconX, rowCenterY)
+                const iconColor = isSelected ? '#2563eb' : '#6b7280'
+                
+                // Draw icon using the helper function
+                if (option.icon && option.icon.length > 1 && !option.icon.match(/[\u{1F300}-\u{1F9FF}]/u)) {
+                    // It's an icon name - draw the actual SVG icon
+                    drawIcon(ctx, option.icon, iconX, rowCenterY, 20, iconColor)
+                } else {
+                    // Fallback to text (emoji) if icon name not recognized
+                    ctx.font = '18px Arial, sans-serif'
+                    ctx.textAlign = 'left'
+                    ctx.textBaseline = 'middle'
+                    ctx.fillStyle = iconColor
+                    ctx.fillText(option.icon || '🚗', iconX - 10, rowCenterY)
+                }
 
                 const typeName = option.type === 'drive' ? 'Drive' :
                                 option.type === 'bus' ? 'Bus' :
@@ -613,21 +717,62 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                                 option.type === 'walk' ? 'Walk' :
                                 option.type === 'bicycle' ? 'Bicycle' : 'Drive'
 
-                ctx.font = isSelected ? 'bold 15px system-ui, -apple-system, sans-serif' : '15px system-ui, -apple-system, sans-serif'
+                // Smaller, cleaner font
+                ctx.font = isSelected ? '600 12px system-ui, -apple-system, sans-serif' : '12px system-ui, -apple-system, sans-serif'
+                ctx.textAlign = 'left'
+                ctx.textBaseline = 'middle'
                 ctx.fillStyle = isSelected ? '#2563eb' : '#1f2937'
-                ctx.fillText(`${typeName} - ${option.duration || 'N/A'}`, iconX + 38, rowCenterY)
+                ctx.fillText(`${typeName} - ${option.duration || 'N/A'}`, iconX + 30, rowCenterY)
 
                 if (option.cost) {
-                    ctx.font = isSelected ? 'bold 15px system-ui, -apple-system, sans-serif' : '15px system-ui, -apple-system, sans-serif'
+                    ctx.font = isSelected ? '600 12px system-ui, -apple-system, sans-serif' : '12px system-ui, -apple-system, sans-serif'
                     ctx.textAlign = 'right'
-                    ctx.fillStyle = isSelected ? '#2563eb' : '#9ca3af'
+                    ctx.fillStyle = isSelected ? '#2563eb' : '#6b7280'
                     ctx.fillText(option.cost, panelX + panelWidth - panelPadding - 8, rowCenterY)
                 }
             })
         }
+        
+        // Draw empty state message if line is expanded but has no transit options
+        if (shouldShowEmptyState) {
+            const startPanelY = midY + 30
+            const panelWidth = 280
+            const panelHeight = 60
+            const panelX = midX - panelWidth / 2
+            
+            // Draw container
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.98)'
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
+            ctx.shadowBlur = 16
+            ctx.shadowOffsetY = 4
+            ctx.beginPath()
+            ctx.roundRect(panelX, startPanelY, panelWidth, panelHeight, 12)
+            ctx.fill()
+            
+            ctx.shadowColor = 'transparent'
+            ctx.shadowBlur = 0
+            ctx.shadowOffsetY = 0
+            
+            // Draw message
+            ctx.font = '14px system-ui, -apple-system, sans-serif'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = '#6b7280'
+            ctx.fillText('No route data available', midX, startPanelY + panelHeight / 2)
+            
+            // Draw explanation - check if we have placeIds (transitOptions is empty array) vs don't have placeIds (undefined)
+            ctx.font = '12px system-ui, -apple-system, sans-serif'
+            ctx.fillStyle = '#9ca3af'
+            // If transitOptions is empty array, it means we tried to fetch but got nothing
+            // If undefined, it means we never tried (no placeIds)
+            const explanation = line.transitOptions !== undefined 
+                ? 'Route unavailable between these locations'
+                : 'Place IDs missing - unable to fetch route data'
+            ctx.fillText(explanation, midX, startPanelY + panelHeight / 2 + 18)
+        }
 
         ctx.restore()
-    }, [])
+    }, [expandedTransitLineId, drawIcon])
 
     // Function to redraw all transit lines (can be called from tools)
     const redrawAllTransitLines = useCallback(() => {
@@ -638,10 +783,10 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
             // Redraw all transit lines
             transitLines.forEach((transitLine) => {
-                redrawTransitLine(ctx, transitLine)
+                redrawTransitLine(ctx, transitLine, expandedTransitLineId)
             })
         }
-    }, [transitLines, redrawTransitLine])
+    }, [transitLines, redrawTransitLine, expandedTransitLineId])
 
     // Redraw transit lines whenever canvas is redrawn or transit lines change
     useEffect(() => {
@@ -655,14 +800,14 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                 if (canvasRef.current && ctx) {
                     // Redraw all transit lines
                     transitLines.forEach((transitLine) => {
-                        redrawTransitLine(ctx, transitLine)
+                        redrawTransitLine(ctx, transitLine, expandedTransitLineId)
                     })
                 }
             }, 50)
 
             return () => clearTimeout(timeoutId)
         }
-    }, [transitLines, pins, redrawTransitLine])
+    }, [transitLines, pins, redrawTransitLine, expandedTransitLineId])
 
     // Dependencies to pass to tool handlers
     const toolDeps = {
@@ -680,11 +825,83 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         redrawTransitLines: redrawAllTransitLines, // Function to redraw all transit lines
     }
 
+    // Helper function to check if point is near a line segment
+    const isPointNearLine = useCallback((x: number, y: number, lineStart: { x: number, y: number }, lineEnd: { x: number, y: number }, lineWidth: number): boolean => {
+        const dx = lineEnd.x - lineStart.x
+        const dy = lineEnd.y - lineStart.y
+        const lineLengthSq = dx * dx + dy * dy
+        
+        if (lineLengthSq === 0) return false
+        
+        const t = Math.max(0, Math.min(1, ((x - lineStart.x) * dx + (y - lineStart.y) * dy) / lineLengthSq))
+        const closestX = lineStart.x + t * dx
+        const closestY = lineStart.y + t * dy
+        
+        const distance = Math.sqrt((x - closestX) ** 2 + (y - closestY) ** 2)
+        return distance <= lineWidth + 10 // 10px tolerance
+    }, [])
+
+    // Helper function to check if click is on transit line or its panels
+    const isClickOnTransitElement = useCallback((x: number, y: number): boolean => {
+        for (const line of transitLines) {
+            // Check if clicking on the line itself
+            if (isPointNearLine(x, y, line.start, line.end, line.lineWidth || 3)) {
+                return true
+            }
+            
+            // Check if clicking on options panel or empty state panel (if expanded)
+            if (expandedTransitLineId === line.id) {
+                const midX = (line.start.x + line.end.x) / 2
+                const midY = (line.start.y + line.end.y) / 2
+                const startPanelY = midY + 30
+                const panelWidth = 260 // Match TRANSIT_PANEL_WIDTH
+                const panelX = midX - panelWidth / 2
+                
+                if (line.transitOptions && line.transitOptions.length > 0) {
+                    // Options panel
+                    const rowHeight = 40 // Match TRANSIT_ROW_HEIGHT
+                    const panelPadding = 10 // Match TRANSIT_PANEL_PADDING
+                    const totalHeight = line.transitOptions.length * rowHeight + panelPadding * 2
+                    if (x >= panelX && x <= panelX + panelWidth && 
+                        y >= startPanelY && y <= startPanelY + totalHeight) {
+                        return true
+                    }
+                } else {
+                    // Empty state panel
+                    const panelHeight = 60
+                    if (x >= panelX && x <= panelX + panelWidth && 
+                        y >= startPanelY && y <= startPanelY + panelHeight) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }, [transitLines, expandedTransitLineId, isPointNearLine])
+
+    // Handle canvas click - close expanded transit line if clicking on empty space
+    const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const rect = canvas.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        
+        // If there's an expanded transit line and we didn't click on it or its panels, close it
+        if (expandedTransitLineId !== null && !isClickOnTransitElement(x, y)) {
+            setExpandedTransitLineId(null)
+        }
+        
+        // Then call the active tool's handler
+        activeTool?.onMouseDown(canvasRef, e, toolDeps)
+    }, [expandedTransitLineId, isClickOnTransitElement, activeTool, toolDeps])
+
     return (
         <div className="canvas-container">
             <canvas
                 ref={canvasRef}
-                onMouseDown={(e) => activeTool?.onMouseDown(canvasRef, e, toolDeps)}
+                onMouseDown={handleCanvasMouseDown}
                 onMouseMove={(e) => activeTool?.onMouseMove(canvasRef, e, toolDeps)}
                 onMouseUp={(e) => activeTool?.onMouseUp(canvasRef, e, toolDeps)}
                 onMouseLeave={(e) => activeTool?.onMouseLeave(canvasRef, e, toolDeps)}

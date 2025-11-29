@@ -50,10 +50,12 @@ app.get('/api/places/autocomplete', async (req: Request, res: Response): Promise
       return;
     }
 
+    // Enable all place types (attractions, restaurants, landmarks, etc.) not just cities/states
     const results = await getPlaceAutocomplete(
       input,
       apiKey,
-      sessionToken
+      sessionToken,
+      true // includeAllTypes = true to support any place from Google Maps
     );
 
     usageStatsService.trackRequest('autocomplete', true, sessionToken);

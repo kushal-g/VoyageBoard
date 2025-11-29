@@ -80,16 +80,20 @@ export async function getPlaceAutocomplete(
       }
     );
 
-    const predictions: AutocompleteResult[] = (response.data.suggestions || []).map((suggestion: any) => {
-      const placePrediction = suggestion.placePrediction;
-      return {
-        description: placePrediction.text.text,
-        placeId: placePrediction.placeId,
-        mainText: placePrediction.structuredFormat.mainText.text,
-        secondaryText: placePrediction.structuredFormat.secondaryText.text,
-        types: placePrediction.types || [],
-      };
-    });
+    const predictions: AutocompleteResult[] = (response.data.suggestions || [])
+      .filter((suggestion: any) => suggestion.placePrediction) // Filter out invalid suggestions
+      .map((suggestion: any) => {
+        const placePrediction = suggestion.placePrediction;
+        // Safely extract fields with fallbacks
+        return {
+          description: placePrediction.text?.text || placePrediction.structuredFormat?.mainText?.text || '',
+          placeId: placePrediction.placeId || '',
+          mainText: placePrediction.structuredFormat?.mainText?.text || '',
+          secondaryText: placePrediction.structuredFormat?.secondaryText?.text || '',
+          types: placePrediction.types || [],
+        };
+      })
+      .filter((pred: AutocompleteResult) => pred.description && pred.placeId); // Filter out predictions with missing required fields
 
     return {
       predictions,

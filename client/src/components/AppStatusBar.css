@@ -1,7 +1,7 @@
 .status-bar {
   position: fixed;
   top: 0;
-  bottom: 5px;
+  bottom: 20px;
   left: 10px;
   right: 10px;
   height: 44px;
@@ -9,6 +9,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 5px 14px;
+  padding-top: 1px;
+  padding-bottom:10px;
   z-index: 1100;
   pointer-events: none; /* non-interactive; icons are decorative */
   background: transparent;
