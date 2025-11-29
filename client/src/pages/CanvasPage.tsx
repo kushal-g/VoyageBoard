@@ -12,10 +12,10 @@ import {
   IonTitle,
   IonText,
 } from "@ionic/react";
-import { chevronBack, menuOutline, calendarOutline, bulbOutline } from "ionicons/icons";
+import { chevronBack, menuOutline, calendarOutline, bulbOutline, saveOutline } from "ionicons/icons";
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
-import Canvas from "./Canvas/Canvas";
+import Canvas, { type CanvasHandle } from "./Canvas/Canvas";
 import type { TOOL } from "../constants/types";
 import type { LocationGroup, LocationPin } from "./Canvas/Canvas";
 import CalendarSidebar from "../components/CalendarSidebar/CalendarSidebar";
@@ -36,7 +36,9 @@ export default function CanvasPage(props: CanvasPageProps) {
   const [lastEdited, setLastEdited] = useState<string>("");
   const [groups, setGroups] = useState<LocationGroup[]>([]);
   const [pins, setPins] = useState<LocationPin[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<CanvasHandle>(null);
   const historyRouter = useHistory();
 
   const params = useParams<{ id?: string }>();
@@ -153,6 +155,23 @@ export default function CanvasPage(props: CanvasPageProps) {
     setIsEditingTitle(false);
   };
 
+  const handleManualSave = () => {
+    if (canvasRef.current) {
+      setIsSaving(true);
+      canvasRef.current.save();
+      // Reset saving state after a short delay
+      setTimeout(() => setIsSaving(false), 500);
+    }
+  };
+
+  const handleSaveComplete = () => {
+    const now = new Date().toLocaleString();
+    setLastEdited(now);
+    if (tripId) {
+      localStorage.setItem(`canvas_${tripId}_lastEdited`, now);
+    }
+  };
+
   return (
     <IonPage>
       <AppStatusBar />
@@ -201,6 +220,14 @@ export default function CanvasPage(props: CanvasPageProps) {
           </IonTitle>
 
           <IonButtons slot="end">
+            <IonButton 
+              onClick={handleManualSave}
+              disabled={isSaving || !tripId}
+              title="Save canvas"
+            >
+              <IonIcon icon={saveOutline} />
+            </IonButton>
+
             <IonButton onClick={() => setIsCalendarOpen((prev) => !prev)}>
               <IonIcon icon={calendarOutline} />
             </IonButton>
@@ -214,6 +241,7 @@ export default function CanvasPage(props: CanvasPageProps) {
 
       <IonContent className="canvas-content">
         <Canvas
+          ref={canvasRef}
           currentTool={currentTool}
           onGroupsChange={setGroups}
           onPinsChange={setPins}
@@ -226,6 +254,9 @@ export default function CanvasPage(props: CanvasPageProps) {
             );
           }}
           placesToAdd={placesToAdd}
+          tripId={tripId}
+          autoSave={true}
+          onSaveComplete={handleSaveComplete}
         />
       </IonContent>
 

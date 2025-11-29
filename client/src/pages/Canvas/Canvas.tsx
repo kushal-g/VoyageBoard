@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import './Canvas.css'
 import type { TOOL } from '../../constants/types'
 import { useDoodleTool } from './tools/Doodle'
@@ -6,6 +6,12 @@ import { useEraserTool } from './tools/Eraser'
 import { useLocationTool } from './tools/Location'
 import { useTransitTool } from './tools/Transit'
 import { useGroupLocationTool } from './tools/GroupLocation'
+import { 
+    saveCanvasStateToLocalStorage, 
+    loadCanvasStateFromLocalStorage,
+    restoreImageDataFromBase64,
+    type SerializedCanvasState
+} from '../../utils/canvasSerialization'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -20,6 +26,21 @@ interface CanvasProps {
         coordinates?: { latitude: number; longitude: number }
     }>
     onTransitLinesChange?: (lines: TransitLine[]) => void
+    tripId?: string
+    autoSave?: boolean
+    onSaveComplete?: () => void
+}
+
+export interface CanvasHandle {
+    save: () => void
+    load: () => Promise<void>
+    getState: () => {
+        pins: LocationPin[]
+        groups: LocationGroup[]
+        transitLines: TransitLine[]
+        history: ImageData[]
+        historyStep: number
+    }
 }
 
 export interface LocationPin {
@@ -56,7 +77,18 @@ export interface TransitLine {
     lineWidth?: number
 }
 
-export default function Canvas({ currentTool, onGroupsChange, onPinsChange, onDeleteGroup, onUpdateGroupLabel, placesToAdd, onTransitLinesChange }: CanvasProps) {
+const Canvas = forwardRef<CanvasHandle, CanvasProps>(({ 
+    currentTool, 
+    onGroupsChange, 
+    onPinsChange, 
+    onDeleteGroup, 
+    onUpdateGroupLabel, 
+    placesToAdd, 
+    onTransitLinesChange,
+    tripId,
+    autoSave = true,
+    onSaveComplete
+}, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [history, setHistory] = useState<ImageData[]>([])
     const [historyStep, setHistoryStep] = useState(-1)
@@ -64,6 +96,8 @@ export default function Canvas({ currentTool, onGroupsChange, onPinsChange, onDe
     const [groups, setGroups] = useState<LocationGroup[]>([])
     const [transitLines, setTransitLines] = useState<TransitLine[]>([])
     const addedPlacesRef = useRef<Set<string>>(new Set())
+    const isInitializedRef = useRef(false)
+    const isRestoringRef = useRef(false)
 
     // Notify parent of changes
     useEffect(() => {
@@ -247,6 +281,153 @@ export default function Canvas({ currentTool, onGroupsChange, onPinsChange, onDe
         setHistory(newHistory)
         setHistoryStep(newHistory.length - 1)
     }
+
+    // Store onSaveComplete in a ref to avoid recreating saveCanvasState
+    const onSaveCompleteRef = useRef(onSaveComplete)
+    useEffect(() => {
+        onSaveCompleteRef.current = onSaveComplete
+    }, [onSaveComplete])
+
+    // Save canvas state to localStorage
+    const saveCanvasState = useCallback(() => {
+        if (!tripId) return
+
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        
+        try {
+            saveCanvasStateToLocalStorage(
+                tripId,
+                pins,
+                groups,
+                transitLines,
+                currentImageData,
+                history,
+                historyStep
+            )
+            
+            if (onSaveCompleteRef.current) {
+                onSaveCompleteRef.current()
+            }
+        } catch (error) {
+            console.error('Failed to save canvas state:', error)
+        }
+    }, [tripId, pins, groups, transitLines, history, historyStep])
+
+    // Load canvas state from localStorage
+    const loadCanvasState = useCallback(async () => {
+        if (!tripId) return
+
+        const serialized = loadCanvasStateFromLocalStorage(tripId)
+        if (!serialized) return
+
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        isRestoringRef.current = true
+
+        try {
+            // Restore pins, groups, and transit lines
+            setPins(serialized.pins || [])
+            setGroups(serialized.groups || [])
+            setTransitLines(serialized.transitLines || [])
+
+            // Restore canvas image data
+            if (serialized.canvasImageData) {
+                const imageData = await restoreImageDataFromBase64(
+                    serialized.canvasImageData,
+                    canvas.width,
+                    canvas.height
+                )
+                if (imageData) {
+                    ctx.putImageData(imageData, 0, 0)
+                }
+            }
+
+            // Restore history
+            if (serialized.history && serialized.history.length > 0) {
+                const restoredHistory: ImageData[] = []
+                for (const base64 of serialized.history) {
+                    const imageData = await restoreImageDataFromBase64(
+                        base64,
+                        canvas.width,
+                        canvas.height
+                    )
+                    if (imageData) {
+                        restoredHistory.push(imageData)
+                    }
+                }
+                setHistory(restoredHistory)
+                setHistoryStep(serialized.historyStep ?? restoredHistory.length - 1)
+            }
+
+            // State updates will trigger redraws via useEffects
+            // Just mark restoration as complete
+            setTimeout(() => {
+                isRestoringRef.current = false
+            }, 200)
+        } catch (error) {
+            console.error('Failed to load canvas state:', error)
+            isRestoringRef.current = false
+        }
+    }, [tripId])
+
+    // Expose save/load methods via ref
+    useImperativeHandle(ref, () => ({
+        save: saveCanvasState,
+        load: loadCanvasState,
+        getState: () => ({
+            pins,
+            groups,
+            transitLines,
+            history,
+            historyStep
+        })
+    }), [saveCanvasState, loadCanvasState, pins, groups, transitLines, history, historyStep])
+
+    // Auto-save on state changes
+    useEffect(() => {
+        if (!autoSave || !tripId || isRestoringRef.current || !isInitializedRef.current) return
+
+        // Debounce auto-save
+        const timeoutId = setTimeout(() => {
+            saveCanvasState()
+        }, 1000) // Save 1 second after last change
+
+        return () => clearTimeout(timeoutId)
+    }, [pins, groups, transitLines, history, historyStep, autoSave, tripId, saveCanvasState])
+
+    // Load state on mount if tripId is provided
+    useEffect(() => {
+        if (!tripId) return
+
+        // Reset initialization flag when tripId changes
+        isInitializedRef.current = false
+
+        // Wait for canvas to be initialized
+        const checkCanvas = setInterval(() => {
+            const canvas = canvasRef.current
+            if (canvas && canvas.width > 0 && canvas.height > 0) {
+                clearInterval(checkCanvas)
+                isInitializedRef.current = true
+                loadCanvasState()
+            }
+        }, 100)
+
+        return () => {
+            clearInterval(checkCanvas)
+            // Reset flag on cleanup when tripId changes
+            isInitializedRef.current = false
+        }
+    }, [tripId, loadCanvasState])
 
     const clearCanvas = () => {
         const canvas = canvasRef.current
@@ -520,4 +701,8 @@ export default function Canvas({ currentTool, onGroupsChange, onPinsChange, onDe
             )}
         </div>
     )
-}
+})
+
+Canvas.displayName = 'Canvas'
+
+export default Canvas
