@@ -232,7 +232,11 @@ export default function CanvasPage(props: CanvasPageProps) {
               <IonIcon icon={calendarOutline} />
             </IonButton>
 
-            <IonButton routerLink="/idea-dump" routerDirection="forward">
+            <IonButton
+              onClick={() => historyRouter.push('/idea-dump', {
+                trip: { id: tripId, name: tripName, lastEdited: lastEdited }
+              })}
+            >
               <IonIcon icon={bulbOutline} />
             </IonButton>
           </IonButtons>

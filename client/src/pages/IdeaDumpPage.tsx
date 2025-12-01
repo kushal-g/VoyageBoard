@@ -98,7 +98,7 @@ function platformFromUrl(u: string): Platform {
 
 export default function IdeaDumpPage() {
   const history = useHistory()
-  const location = useLocation<{ trip?: { name?: string; lastEdited?: string } } | undefined>()
+  const location = useLocation<{ trip?: { id?: string; name?: string; lastEdited?: string } } | undefined>()
   const trip = location.state?.trip
 
   const [items, setItems] = useState<Idea[]>([])
@@ -207,7 +207,7 @@ export default function IdeaDumpPage() {
         localStorage.setItem('placesToAddToCanvas', JSON.stringify(placesToAdd))
         
         // Navigate to canvas page (use the trip ID from current location or default)
-        const canvasId = trip?.name ? encodeURIComponent(trip.name) : '1'
+        const canvasId = trip?.id || '1'
         history.push(`/canvas/${canvasId}`, { 
           trip,
           placesToAdd: placesToAdd 
