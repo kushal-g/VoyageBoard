@@ -12,7 +12,8 @@ import {
   IonLabel,
   IonInput,
   IonAlert,
-  IonText
+  IonText,
+  IonLoading
 } from '@ionic/react'
 import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add, trash } from 'ionicons/icons'
 import './IdeaDumpPage.css'
@@ -104,6 +105,7 @@ export default function IdeaDumpPage() {
   const [items, setItems] = useState<Idea[]>([])
   const [linkValue, setLinkValue] = useState('')
   const [showLeaveAlert, setShowLeaveAlert] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const hasUnprocessed = items.some(i => i.status === 'unprocessed')
   const pageTitle = trip?.name ? `Ideas for ${trip.name}` : 'Idea Dump'
@@ -152,6 +154,8 @@ export default function IdeaDumpPage() {
     const unprocessedItems = getUnprocessedItems()
     if (unprocessedItems.length === 0) return
 
+    setIsProcessing(true)
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
         method: "POST",
@@ -166,19 +170,20 @@ export default function IdeaDumpPage() {
 
       if (!response.ok) {
         console.error('Failed to scrape:', response.statusText)
+        setIsProcessing(false)
         return
       }
 
       const body: ScrapeApiResponse = await response.json()
-      
+
       // Update items - mark processed item as ready and add extracted places
       setItems(items => {
-        const updatedItems = items.map(item => 
-          item.id === unprocessedItems[0].id 
+        const updatedItems = items.map(item =>
+          item.id === unprocessedItems[0].id
             ? { ...item, status: 'ready' as Status, title: body.title || item.title }
             : item
         )
-        
+
         // Add extracted places as new items
         const newPlaceItems = (body.extractedPlaces ?? [])
           .map(place => ({
@@ -186,35 +191,34 @@ export default function IdeaDumpPage() {
             title: place.name,
             platform: body.title ?? "",
             status: "ready" as Status,
-            thumb: place.photoReference 
+            thumb: place.photoReference
               ? `https://places.googleapis.com/v1/${place.photoReference}/media?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&maxHeightPx=400&maxWidthPx=400`
               : undefined
           }))
-        
+
         return [...newPlaceItems, ...updatedItems]
       })
 
       // Store extracted places to add to canvas
       if (body.extractedPlaces && body.extractedPlaces.length > 0) {
-        // Store places in localStorage to be picked up by canvas
         const placesToAdd = body.extractedPlaces.map(place => ({
           name: place.name,
           placeId: place.placeId,
           formattedAddress: place.formattedAddress,
           coordinates: place.coordinates
         }))
-        
-        localStorage.setItem('placesToAddToCanvas', JSON.stringify(placesToAdd))
-        
+
         // Navigate to canvas page (use the trip ID from current location or default)
         const canvasId = trip?.id || '1'
-        history.push(`/canvas/${canvasId}`, { 
+        history.push(`/canvas/${canvasId}`, {
           trip,
-          placesToAdd: placesToAdd 
+          placesToAdd: placesToAdd
         })
       }
     } catch (error) {
       console.error('Error processing ideas:', error)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -333,6 +337,12 @@ export default function IdeaDumpPage() {
             { text: 'Cancel', role: 'cancel' },
             { text: 'Leave anyway', handler: () => history.goBack() }
           ]}
+        />
+
+        <IonLoading
+          isOpen={isProcessing}
+          message="Processing ideas..."
+          spinner="crescent"
         />
       </IonContent>
     </IonPage>
