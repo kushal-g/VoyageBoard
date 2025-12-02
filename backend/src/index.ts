@@ -216,13 +216,7 @@ app.get('/api/travel/options', async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const results = await searchAllTravelOptions(origin, destination, apiKey, {
-      includeFlights: true,
-      includeTransit: true,
-      includeDriving: true,
-      includeWalking: false,
-      includeBicycling: false,
-    });
+    const results = await searchAllTravelOptions(origin, destination);
 
     res.json(results);
   } catch (error) {

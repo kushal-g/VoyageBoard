@@ -348,77 +348,166 @@
       "description": "Routes, distance, and transit information between places"
     },
     {
-      "name": "Combined Travel Search",
+      "name": "Travel Options",
       "item": [
         {
-          "name": "Search All Travel Options",
+          "name": "Travel Options - Intra-City (Place IDs)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/travel/search?origin=New York&destination=Boston",
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJOwg_06VPwokRYv534QaPC8g&destination=ChIJmQJIxlVYwokRLgeuocVOGVU",
               "host": ["{{base_url}}"],
-              "path": ["api", "travel", "search"],
+              "path": ["api", "travel", "options"],
               "query": [
                 {
                   "key": "origin",
-                  "value": "New York",
-                  "description": "Origin city or place ID"
+                  "value": "ChIJOwg_06VPwokRYv534QaPC8g",
+                  "description": "Origin place ID (NYC - Times Square)"
                 },
                 {
                   "key": "destination",
-                  "value": "Boston",
-                  "description": "Destination city or place ID"
+                  "value": "ChIJmQJIxlVYwokRLgeuocVOGVU",
+                  "description": "Destination place ID (NYC - Central Park)"
                 }
               ]
             },
-            "description": "Get all travel options (trains, buses, driving) combined in one response"
+            "description": "Get intra-city travel options (<80km) including drive, walk, bicycle, and transit with fare information. Returns coordinates, all options with duration/distance, and summary statistics (cheapest, fastest, recommended)."
           },
           "response": []
         },
         {
-          "name": "Search with Custom Filters",
+          "name": "Travel Options - Inter-City",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/travel/search?origin=40.7128,-74.0060&destination=42.3601,-71.0589&includeTransit=true&includeDriving=true&includeWalking=true",
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJOwg_06VPwokRYv534QaPC8g&destination=ChIJ60u11Ni3xokRwVg-jNgU9Yk",
               "host": ["{{base_url}}"],
-              "path": ["api", "travel", "search"],
+              "path": ["api", "travel", "options"],
               "query": [
                 {
                   "key": "origin",
-                  "value": "40.7128,-74.0060",
-                  "description": "NYC coordinates"
+                  "value": "ChIJOwg_06VPwokRYv534QaPC8g",
+                  "description": "Origin place ID (New York City)"
                 },
                 {
                   "key": "destination",
-                  "value": "42.3601,-71.0589",
-                  "description": "Boston coordinates"
-                },
-                {
-                  "key": "includeTransit",
-                  "value": "true",
-                  "description": "Include trains and buses"
-                },
-                {
-                  "key": "includeDriving",
-                  "value": "true",
-                  "description": "Include driving directions"
-                },
-                {
-                  "key": "includeWalking",
-                  "value": "true",
-                  "description": "Include walking directions"
+                  "value": "ChIJ60u11Ni3xokRwVg-jNgU9Yk",
+                  "description": "Destination place ID (Boston)"
                 }
               ]
             },
-            "description": "Search with custom filters for specific travel modes"
+            "description": "Get inter-city travel options (80-1000km) including drive, walk, and transit. Transit options include fare information when available from Google Maps. Summary includes cheapest, fastest, and recommended options."
+          },
+          "response": []
+        },
+        {
+          "name": "Travel Options - Long Distance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJOwg_06VPwokRYv534QaPC8g&destination=ChIJIQBpAG2ahYAR_6128GcTUEo",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "options"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "ChIJOwg_06VPwokRYv534QaPC8g",
+                  "description": "Origin place ID (New York City)"
+                },
+                {
+                  "key": "destination",
+                  "value": "ChIJIQBpAG2ahYAR_6128GcTUEo",
+                  "description": "Destination place ID (San Francisco)"
+                }
+              ]
+            },
+            "description": "Get long distance travel options (>1000km). Currently returns placeholder for flights and intercity trains (to be implemented)."
+          },
+          "response": []
+        },
+        {
+          "name": "Travel Options - San Francisco to LA",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJIQBpAG2ahYAR_6128GcTUEo&destination=ChIJE9on3F3HwoAR9AhGJW_fL-I",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "options"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "ChIJIQBpAG2ahYAR_6128GcTUEo",
+                  "description": "San Francisco"
+                },
+                {
+                  "key": "destination",
+                  "value": "ChIJE9on3F3HwoAR9AhGJW_fL-I",
+                  "description": "Los Angeles"
+                }
+              ]
+            },
+            "description": "Inter-city travel from San Francisco to Los Angeles (~600km). Returns drive, walk, and transit options with fare information."
+          },
+          "response": []
+        },
+        {
+          "name": "Travel Options - Paris Metro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJD7fiBh9u5kcRYJSMaMOCCwQ&destination=ChIJpY8e9Lty5kcRPgVJI8Z3qlg",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "options"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+                  "description": "Paris - Eiffel Tower"
+                },
+                {
+                  "key": "destination",
+                  "value": "ChIJpY8e9Lty5kcRPgVJI8Z3qlg",
+                  "description": "Paris - Louvre Museum"
+                }
+              ]
+            },
+            "description": "Intra-city Paris metro with fare information. Great example of transit fare extraction from Google Maps."
+          },
+          "response": []
+        },
+        {
+          "name": "Travel Options - Tokyo to Osaka",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/travel/options?origin=ChIJ51cu8IcbXWARiRtXIothAS4&destination=ChIJ4eIGNFXmAGAR5y9q5G7BW8U",
+              "host": ["{{base_url}}"],
+              "path": ["api", "travel", "options"],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "ChIJ51cu8IcbXWARiRtXIothAS4",
+                  "description": "Tokyo"
+                },
+                {
+                  "key": "destination",
+                  "value": "ChIJ4eIGNFXmAGAR5y9q5G7BW8U",
+                  "description": "Osaka"
+                }
+              ]
+            },
+            "description": "Inter-city travel in Japan (~500km). Returns Shinkansen and other transit options with fare."
           },
           "response": []
         }
       ],
-      "description": "Combined travel search - get all options (trains, buses, driving) in one API call"
+      "description": "Travel options endpoint - gets all transportation options between two places based on distance. Automatically selects intra-city (<80km: drive/walk/bicycle/transit), inter-city (80-1000km: drive/walk/transit), or long-distance (>1000km: flights/trains). Includes fare information for transit when available and summary statistics (cheapest, fastest, recommended)."
     },
     {
       "name": "Usage Statistics",

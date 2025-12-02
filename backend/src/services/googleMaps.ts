@@ -155,6 +155,12 @@ export interface Route {
   legs: Routeleg[];
 }
 
+export interface TransitFare {
+  currencyCode: string;
+  units?: string;
+  nanos?: number;
+}
+
 export interface TransitDetails {
   arrivalTime: string;
   departureTime: string;
@@ -164,6 +170,7 @@ export interface TransitDetails {
     type: string;
     color?: string;
   };
+  transitFare?: TransitFare;
 }
 
 export interface RouteStep {
@@ -186,6 +193,10 @@ export interface RoutesResponse {
     duration: string;
     startAddress: string;
     endAddress: string;
+  };
+  fare?: {
+    currencyCode: string;
+    amount: string;
   };
 }
 
@@ -243,7 +254,7 @@ export async function getRoutes(
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask':
-          'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs',
+          'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.duration,routes.legs.distanceMeters,routes.legs.steps,routes.legs.localizedValues,routes.travelAdvisory',
       },
     });
 
@@ -269,6 +280,43 @@ export async function getRoutes(
     const durationFormatted =
       hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
+    // Extract fare information from transit details (if available)
+    // Note: Fare data availability depends on transit agency data sharing with Google.
+    // Not all transit agencies provide fare information through the Routes API.
+    let fare: { currencyCode: string; amount: string } | undefined;
+    if (travelMode === 'TRANSIT' && primaryRoute.legs) {
+      for (const leg of primaryRoute.legs) {
+        // Try to get fare from leg.localizedValues.transitFare
+        if (leg.localizedValues?.transitFare) {
+          const fareData = leg.localizedValues.transitFare;
+          fare = {
+            currencyCode: fareData.currencyCode || 'USD',
+            amount: fareData.text?.replace(/[^0-9.]/g, '') || '0',
+          };
+          break;
+        }
+
+        // Fallback to step-level transit details
+        if (leg.steps) {
+          for (const step of leg.steps) {
+            if (step.transitDetails?.transitLine?.agencies?.[0]?.transitFare) {
+              const transitFare = step.transitDetails.transitLine.agencies[0].transitFare;
+              const units = parseInt(transitFare.units || '0');
+              const nanos = transitFare.nanos || 0;
+              const totalAmount = units + nanos / 1000000000;
+
+              fare = {
+                currencyCode: transitFare.currencyCode,
+                amount: totalAmount.toFixed(2),
+              };
+              break;
+            }
+          }
+          if (fare) break;
+        }
+      }
+    }
+
     return {
       routes: routes.map((route: any) => ({
         distanceMeters: route.distanceMeters,
@@ -285,6 +333,7 @@ export async function getRoutes(
         startAddress: 'Origin',
         endAddress: 'Destination',
       },
+      fare,
     };
   } catch (error) {
     console.error('Error fetching routes:', error);
