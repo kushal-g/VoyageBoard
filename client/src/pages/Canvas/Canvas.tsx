@@ -169,17 +169,14 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
             if (newPlaces.length === 0) return
 
-            // Calculate positions in a grid layout
-            const cols = Math.ceil(Math.sqrt(newPlaces.length))
-            const spacing = 150
-            const startX = canvasWidth / 2 - (cols - 1) * spacing / 2
-            const startY = canvasHeight / 2
+            // Calculate positions in a scattered/random layout
+            const margin = 100
+            const minSpacing = 150
 
             const newPins: LocationPin[] = newPlaces.map((place, index) => {
-                const row = Math.floor(index / cols)
-                const col = index % cols
-                const x = startX + col * spacing
-                const y = startY + row * spacing
+                // Generate scattered random positions
+                const x = margin + Math.random() * (canvasWidth - 2 * margin)
+                const y = margin + Math.random() * (canvasHeight - 2 * margin)
 
                 // Create new pin
                 return {

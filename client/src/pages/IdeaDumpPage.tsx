@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   IonPage,
   IonHeader,
@@ -18,6 +18,8 @@ import {
 import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add, trash } from 'ionicons/icons'
 import './IdeaDumpPage.css'
 import { useHistory, useLocation } from 'react-router-dom'
+import { loadCanvasStateFromLocalStorage } from '../utils/canvasSerialization'
+import type { LocationPin } from './Canvas/Canvas'
 
 type Platform = 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'upload'
 type Status = 'ready' | 'unprocessed'
@@ -29,6 +31,9 @@ type Idea = {
   thumb?: string
   status: Status
   link?: string
+  placeId?: string
+  formattedAddress?: string
+  coordinates?: PlaceLocation
 }
 
 interface PlaceLocation {
@@ -107,6 +112,33 @@ export default function IdeaDumpPage() {
   const [showLeaveAlert, setShowLeaveAlert] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  const tripId = trip?.id || 'default'
+  const storageKey = `idea_dump_${tripId}`
+
+  // Load items from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (stored) {
+        const parsedItems = JSON.parse(stored) as Idea[]
+        setItems(parsedItems)
+      }
+    } catch (error) {
+      console.error('Failed to load items from localStorage:', error)
+    }
+  }, [storageKey])
+
+  // Save items to localStorage whenever they change
+  useEffect(() => {
+    if (items.length > 0) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(items))
+      } catch (error) {
+        console.error('Failed to save items to localStorage:', error)
+      }
+    }
+  }, [items, storageKey])
+
   const hasUnprocessed = items.some(i => i.status === 'unprocessed')
   const pageTitle = trip?.name ? `Ideas for ${trip.name}` : 'Idea Dump'
   const subtitleText = `${items.length} item${items.length === 1 ? '' : 's'}`
@@ -144,6 +176,70 @@ export default function IdeaDumpPage() {
 
   function deleteItem(id: string) {
     setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  function addLocationToCanvas(idea: Idea) {
+    if (!idea.placeId) return
+    
+    const canvasId = trip?.id || '1'
+    
+    // Load existing canvas state
+    const existingState = loadCanvasStateFromLocalStorage(canvasId)
+    const existingPins = existingState?.pins || []
+    const existingGroups = existingState?.groups || []
+    const existingTransitLines = existingState?.transitLines || []
+    const existingHistory = existingState?.history || []
+    const existingHistoryStep = existingState?.historyStep ?? -1
+    
+    // Check if this location is already added
+    const isAlreadyAdded = existingPins.some(pin => pin.placeId === idea.placeId)
+    if (isAlreadyAdded) {
+      // Optionally show a message or just return silently
+      return
+    }
+    
+    // Use a default canvas size for positioning (will be adjusted when canvas loads)
+    const defaultCanvasWidth = 1200
+    const defaultCanvasHeight = 800
+    const margin = 100
+    
+    // Generate scattered random position
+    const x = margin + Math.random() * (defaultCanvasWidth - 2 * margin)
+    const y = margin + Math.random() * (defaultCanvasHeight - 2 * margin)
+    
+    const newPin: LocationPin = {
+      x,
+      y,
+      id: Date.now(),
+      location: idea.formattedAddress || idea.title,
+      color: '#808080',
+      placeId: idea.placeId
+    }
+    
+    // Combine with existing pins
+    const allPins = [...existingPins, newPin]
+    
+    // Save to localStorage
+    // Note: We preserve the existing state structure, but don't try to restore ImageData
+    // The canvas will handle proper restoration when it loads
+    try {
+      const serialized = {
+        version: existingState?.version || '1.0.0',
+        pins: allPins,
+        groups: existingGroups,
+        transitLines: existingTransitLines,
+        canvasImageData: existingState?.canvasImageData || null,
+        history: existingHistory,
+        historyStep: existingHistoryStep,
+        timestamp: new Date().toISOString()
+      }
+      
+      const storageKey = `canvas_state_${canvasId}`
+      localStorage.setItem(storageKey, JSON.stringify(serialized))
+      localStorage.setItem(`canvas_state_${canvasId}_saved`, new Date().toISOString())
+    } catch (error) {
+      console.error('Failed to add location to canvas:', error)
+    }
   }
 
   function getUnprocessedItems() {
@@ -193,26 +289,97 @@ export default function IdeaDumpPage() {
             status: "ready" as Status,
             thumb: place.photoReference
               ? `https://places.googleapis.com/v1/${place.photoReference}/media?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&maxHeightPx=400&maxWidthPx=400`
-              : undefined
+              : undefined,
+            placeId: place.placeId,
+            formattedAddress: place.formattedAddress,
+            coordinates: place.coordinates
           }))
 
         return [...newPlaceItems, ...updatedItems]
       })
 
-      // Store extracted places to add to canvas
+      // Automatically save all locations to canvas
       if (body.extractedPlaces && body.extractedPlaces.length > 0) {
-        const placesToAdd = body.extractedPlaces.map(place => ({
-          name: place.name,
-          placeId: place.placeId,
-          formattedAddress: place.formattedAddress,
-          coordinates: place.coordinates
-        }))
-
-        // Navigate to canvas page (use the trip ID from current location or default)
         const canvasId = trip?.id || '1'
+        
+        // Load existing canvas state
+        const existingState = loadCanvasStateFromLocalStorage(canvasId)
+        const existingPins = existingState?.pins || []
+        const existingGroups = existingState?.groups || []
+        const existingTransitLines = existingState?.transitLines || []
+        const existingHistory = existingState?.history || []
+        const existingHistoryStep = existingState?.historyStep ?? -1
+        
+        // Get existing canvas image data if available
+        let existingCanvasImageData: ImageData | null = null
+        if (existingState?.canvasImageData) {
+          // We'll need to restore this, but for now we'll create a blank canvas
+          // The canvas will handle restoring the image when it loads
+          existingCanvasImageData = null
+        }
+        
+        // Filter out places that are already in the canvas
+        const existingPlaceIds = new Set(existingPins.map(pin => pin.placeId).filter(Boolean))
+        const placesToAdd = body.extractedPlaces.filter(place => 
+          place.placeId && !existingPlaceIds.has(place.placeId)
+        )
+        
+        if (placesToAdd.length === 0) {
+          // All locations already exist, just navigate to canvas
+          const canvasId = trip?.id || '1'
+          history.push(`/canvas/${canvasId}`, { trip })
+          return
+        }
+        
+        // Create new pins with scattered positions
+        // Use a default canvas size for positioning (will be adjusted when canvas loads)
+        const defaultCanvasWidth = 1200
+        const defaultCanvasHeight = 800
+        const margin = 100
+        
+        const newPins: LocationPin[] = placesToAdd.map((place, index) => {
+          // Generate scattered random positions
+          const x = margin + Math.random() * (defaultCanvasWidth - 2 * margin)
+          const y = margin + Math.random() * (defaultCanvasHeight - 2 * margin)
+          
+          return {
+            x,
+            y,
+            id: Date.now() + index,
+            location: place.formattedAddress || place.name,
+            color: '#808080',
+            placeId: place.placeId
+          }
+        })
+        
+        // Combine with existing pins
+        const allPins = [...existingPins, ...newPins]
+        
+        // Save to localStorage
+        // Note: We preserve the existing state structure, but don't try to restore ImageData
+        // The canvas will handle proper restoration when it loads
+        try {
+          const serialized = {
+            version: existingState?.version || '1.0.0',
+            pins: allPins,
+            groups: existingGroups,
+            transitLines: existingTransitLines,
+            canvasImageData: existingState?.canvasImageData || null,
+            history: existingHistory,
+            historyStep: existingHistoryStep,
+            timestamp: new Date().toISOString()
+          }
+          
+          const storageKey = `canvas_state_${canvasId}`
+          localStorage.setItem(storageKey, JSON.stringify(serialized))
+          localStorage.setItem(`canvas_state_${canvasId}_saved`, new Date().toISOString())
+        } catch (error) {
+          console.error('Failed to save locations automatically:', error)
+        }
+        
+        // Navigate to canvas to show the results
         history.push(`/canvas/${canvasId}`, {
-          trip,
-          placesToAdd: placesToAdd
+          trip
         })
       }
     } catch (error) {
@@ -283,6 +450,20 @@ export default function IdeaDumpPage() {
                 >
                   <IonIcon icon={trash} />
                 </IonButton>
+
+                {card.placeId && (
+                  <IonButton
+                    fill="clear"
+                    className="id-add-btn"
+                    onClick={e => {
+                      e.stopPropagation()
+                      addLocationToCanvas(card)
+                    }}
+                    title="Add to canvas"
+                  >
+                    <IonIcon icon={add} />
+                  </IonButton>
+                )}
 
                 <div
                   className="id-thumb"

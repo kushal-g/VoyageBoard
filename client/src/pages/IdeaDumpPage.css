@@ -148,6 +148,25 @@
   color: #ffffff;
 }
 
+.idea-dump-page .id-add-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  height: 28px;
+  width: 28px;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idea-dump-page .id-add-btn ion-icon {
+  font-size: 16px;
+  color: #ffffff;
+}
+
 /* header buttons (matching Home/Canvas glass look) */
 
 .idea-dump-page .id-pill {
