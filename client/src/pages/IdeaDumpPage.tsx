@@ -187,7 +187,6 @@ export default function IdeaDumpPage() {
     const existingState = loadCanvasStateFromLocalStorage(canvasId)
     const existingPins = existingState?.pins || []
     const existingGroups = existingState?.groups || []
-    const existingTransitLines = existingState?.transitLines || []
     const existingHistory = existingState?.history || []
     const existingHistoryStep = existingState?.historyStep ?? -1
     
@@ -227,7 +226,7 @@ export default function IdeaDumpPage() {
         version: existingState?.version || '1.0.0',
         pins: allPins,
         groups: existingGroups,
-        transitLines: existingTransitLines,
+        transitLines: [],
         canvasImageData: existingState?.canvasImageData || null,
         history: existingHistory,
         historyStep: existingHistoryStep,
@@ -306,7 +305,6 @@ export default function IdeaDumpPage() {
         const existingState = loadCanvasStateFromLocalStorage(canvasId)
         const existingPins = existingState?.pins || []
         const existingGroups = existingState?.groups || []
-        const existingTransitLines = existingState?.transitLines || []
         const existingHistory = existingState?.history || []
         const existingHistoryStep = existingState?.historyStep ?? -1
         
@@ -363,7 +361,7 @@ export default function IdeaDumpPage() {
             version: existingState?.version || '1.0.0',
             pins: allPins,
             groups: existingGroups,
-            transitLines: existingTransitLines,
+            transitLines: [],
             canvasImageData: existingState?.canvasImageData || null,
             history: existingHistory,
             historyStep: existingHistoryStep,

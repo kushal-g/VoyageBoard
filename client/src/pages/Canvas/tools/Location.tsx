@@ -10,27 +10,9 @@ interface Point {
 
 // Removed static DESTINATIONS list - we rely on the backend API for autocomplete
 
-interface TransitLine {
-    start: { x: number; y: number }
-    end: { x: number; y: number }
-    distance: number
-    id: number
-    transitOptions?: Array<{
-        type: 'drive' | 'bus' | 'train' | 'flight' | 'walk' | 'bicycle'
-        duration: string
-        distance?: string
-        cost?: string
-        icon: string
-    }>
-    selectedOptionIndex?: number
-    lineColor?: string
-    lineWidth?: number
-}
-
 export const useLocationTool = (
     pins: LocationPin[],
-    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
-    transitLines: TransitLine[] = []
+    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')

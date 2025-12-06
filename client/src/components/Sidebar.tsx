@@ -3,9 +3,9 @@ import './Sidebar.css'
 import { IonIcon } from '@ionic/react'
 import {
   locationOutline,
-  mapOutline,
   layersOutline,
   searchOutline,
+  swapHorizontalOutline,
 } from 'ionicons/icons'
 import { SketchingIcon } from './icons/sketching-icon'
 
@@ -36,15 +36,6 @@ export default function Sidebar({ currentTool, setCurrentTool, isOpen = false }:
         </button>
 
         <button
-          className={`menu-item ${currentTool === 'TRANSIT' ? 'selected' : ''}`}
-          onClick={() => setCurrentTool && setCurrentTool('TRANSIT')}
-          aria-label="Distance Measure"
-        >
-          <IonIcon icon={mapOutline} className="menu-icon" />
-          <span className="menu-label">Transit</span>
-        </button>
-
-        <button
           className={`menu-item ${currentTool === 'DOODLE' ? 'selected' : ''}`}
           onClick={() => setCurrentTool && setCurrentTool('DOODLE')}
           aria-label="Doodle"
@@ -60,6 +51,15 @@ export default function Sidebar({ currentTool, setCurrentTool, isOpen = false }:
         >
           <IonIcon icon={layersOutline} className="menu-icon" />
           <span className="menu-label">Group Locations</span>
+        </button>
+
+        <button
+          className={`menu-item ${currentTool === 'TRANSIT' ? 'selected' : ''}`}
+          onClick={() => setCurrentTool && setCurrentTool('TRANSIT')}
+          aria-label="Transit"
+        >
+          <IonIcon icon={swapHorizontalOutline} className="menu-icon" />
+          <span className="menu-label">Transit</span>
         </button>
       </div>
     </div>
