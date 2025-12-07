@@ -10,6 +10,8 @@ export interface CanvasTool {
     toolbar: ReactNode | ((deps: Record<string, any>) => ReactNode) | undefined,
     cursor?: string,
     cursorElement?: ReactNode,
+    locationPins?: ReactNode | ((deps: Record<string, any>) => ReactNode),
+    messageOverlay?: ReactNode,
     onMouseDown: CanvasToolMouseEventHandler,
     onMouseMove: CanvasToolMouseEventHandler,
     onMouseUp: CanvasToolMouseEventHandler,

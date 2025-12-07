@@ -543,7 +543,16 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                 style={{ cursor: activeTool?.cursor || 'crosshair', touchAction: 'none' }}
             />
 
+            {/* Always render location pins (they handle their own interactions) */}
+            {locationTool.locationPins && (
+                typeof locationTool.locationPins === 'function'
+                    ? locationTool.locationPins(toolDeps)
+                    : locationTool.locationPins
+            )}
+
             {activeTool?.cursorElement}
+
+            {activeTool?.messageOverlay}
 
             {activeTool?.toolbar && (
                 typeof activeTool.toolbar === 'function' 

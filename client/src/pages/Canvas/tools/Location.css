@@ -1,0 +1,64 @@
+.location-pins-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Overlay doesn't block, but pins do */
+    z-index: 100;
+}
+
+.location-pin {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto; /* Pins handle their own mouse events */
+    cursor: move;
+    user-select: none;
+    transition: transform 0.1s ease-out;
+}
+
+.location-pin:hover {
+    transform: translate(-50%, -100%) scale(1.05);
+}
+
+.location-pin.selected {
+    z-index: 1000;
+}
+
+.location-pin.delete-mode {
+    cursor: pointer;
+}
+
+.location-pin-icon {
+    width: 24px;
+    height: 24px;
+    color: #000000;
+    flex-shrink: 0;
+}
+
+.location-pin-label {
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.location-pin.hovered .location-pin-label {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.location-pin.selected .location-pin-label {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-width: 2px;
+}
+

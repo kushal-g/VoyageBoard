@@ -1,19 +1,68 @@
 import { useState, useRef, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import type { CanvasTool } from '../types'
 import type { LocationPin } from '../Canvas'
 import LocationToolbar from '@/components/LocationToolbar/LocationToolbar'
+import './Location.css'
 
 interface Point {
     x: number
     y: number
 }
 
-// Removed static DESTINATIONS list - we rely on the backend API for autocomplete
+// Location Pin Component - renders as HTML overlay
+const LocationPinElement = ({
+    pin,
+    isSelected,
+    isHovered,
+    isDeleteMode,
+    onMouseDown,
+    onMouseEnter,
+    onMouseLeave,
+    style
+}: {
+    pin: LocationPin
+    isSelected: boolean
+    isHovered: boolean
+    isDeleteMode: boolean
+    onMouseDown: (e: React.MouseEvent) => void
+    onMouseEnter: () => void
+    onMouseLeave: () => void
+    style: React.CSSProperties
+}) => {
+    return (
+        <div
+            className={`location-pin ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''} ${isDeleteMode ? 'delete-mode' : ''}`}
+            style={style}
+            onMouseDown={onMouseDown}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+        >
+            <svg
+                className="location-pin-icon"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <path d="M12 22s-5-5.2-5-10.5a5 5 0 0 1 10 0C17 16.8 12 22 12 22z"/>
+                <circle cx="12" cy="11.5" r="2.4"/>
+            </svg>
+            <div className="location-pin-label">
+                {pin.location}
+            </div>
+        </div>
+    )
+}
 
 export const useLocationTool = (
     pins: LocationPin[],
     setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
-    transitLines: any[] = []
+    _transitLines: any[] = []
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
@@ -28,8 +77,8 @@ export const useLocationTool = (
     const [isEditingLocation, setIsEditingLocation] = useState(false)
     const [isDeleteMode, setIsDeleteMode] = useState(false)
     const canvasRefForRedraw = useRef<HTMLCanvasElement | null>(null)
-    const canvasStateBeforeDrag = useRef<ImageData | null>(null)
     const mouseDownPosition = useRef<Point | null>(null)
+    const dragOffset = useRef<Point | null>(null)
     const hasMoved = useRef(false)
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -93,35 +142,6 @@ export const useLocationTool = (
         }
     }, [pinLocation])
 
-    // Redraw canvas when pins change (to show updated location text)
-    useEffect(() => {
-        if (canvasRefForRedraw.current) {
-            const canvas = canvasRefForRedraw.current
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return
-
-            // Clear the entire canvas first to remove any overlays/indicators
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-            // Redraw all locations with location icon + badge
-            if (pins.length > 0) {
-                pins.forEach(pin => {
-                    // Draw location with location icon + badge (use pin's color if stored, otherwise default)
-                    const color = (pin as any).color || pinColor
-                    drawLocation(ctx, pin.x, pin.y, color, pin.location)
-                })
-            }
-
-            // Redraw transit lines if any exist
-            if (transitLines.length > 0) {
-                transitLines.forEach(line => {
-                    drawTransitLine(ctx, line.start, line.end, line.distance, 'distance', 0, line.selectedOption)
-                })
-            }
-        }
-    }, [pins, pinColor, transitLines])
-
     const handleLocationSelect = (location: string) => {
         setPinLocation(location)
         setShowSuggestions(false)
@@ -173,188 +193,13 @@ export const useLocationTool = (
         }
     }
 
-    // Draw transit line (simplified version from Transit tool)
-    const drawTransitLine = (
-        ctx: CanvasRenderingContext2D,
-        start: Point,
-        end: Point,
-        distance: number,
-        displayMode: 'none' | 'loader' | 'distance' = 'distance',
-        animFrame: number = 0,
-        selectedOption?: any
-    ) => {
-        ctx.save()
-
-        const color = '#000000'
-        const width = 3
-
-        ctx.strokeStyle = color
-        ctx.lineWidth = width
-        ctx.lineCap = 'round'
-        ctx.setLineDash([12, 6])
-
-        ctx.beginPath()
-        ctx.moveTo(start.x, start.y)
-        ctx.lineTo(end.x, end.y)
-        ctx.stroke()
-
-        ctx.setLineDash([])
-
-        const angle = Math.atan2(end.y - start.y, end.x - start.x)
-        const arrowLength = 15
-
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.moveTo(end.x, end.y)
-        ctx.lineTo(
-            end.x - arrowLength * Math.cos(angle - Math.PI / 6),
-            end.y - arrowLength * Math.sin(angle - Math.PI / 6)
-        )
-        ctx.lineTo(
-            end.x - arrowLength * Math.cos(angle + Math.PI / 6),
-            end.y - arrowLength * Math.sin(angle + Math.PI / 6)
-        )
-        ctx.closePath()
-        ctx.fill()
-
-        const midX = (start.x + end.x) / 2
-        const midY = (start.y + end.y) / 2
-
-        const lineAngle = Math.atan2(end.y - start.y, end.x - start.x)
-
-        if (displayMode === 'distance' && distance > 0) {
-            ctx.save()
-
-            ctx.translate(midX, midY)
-            ctx.rotate(lineAngle)
-
-            if (lineAngle > Math.PI / 2 || lineAngle < -Math.PI / 2) {
-                ctx.rotate(Math.PI)
-            }
-
-            ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'bottom'
-
-            const distanceText = `${distance.toFixed(2)} km`
-            const textMetrics = ctx.measureText(distanceText)
-            const textWidth = textMetrics.width
-            const padding = 6
-            const offsetY = -8
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
-            ctx.fillRect(
-                -textWidth / 2 - padding,
-                offsetY - 16,
-                textWidth + padding * 2,
-                20
-            )
-
-            ctx.fillStyle = color
-            ctx.fillText(distanceText, 0, offsetY)
-
-            ctx.restore()
-        }
-
-        // Draw selected transit option details below the line
-        if (selectedOption && displayMode === 'distance') {
-            ctx.save()
-
-            ctx.translate(midX, midY)
-            ctx.rotate(lineAngle)
-
-            if (lineAngle > Math.PI / 2 || lineAngle < -Math.PI / 2) {
-                ctx.rotate(Math.PI)
-            }
-
-            const offsetY = 12
-
-            const formatType = (type: string) => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
-            const typeText = formatType(selectedOption.type)
-
-            // Get Material Icon name based on type
-            const type = selectedOption.type.toLowerCase()
-            let iconName = ''
-            if (type === 'drive') iconName = 'directions_car'
-            else if (type === 'bus') iconName = 'directions_bus'
-            else if (type === 'train') iconName = 'directions_transit'
-            else if (type === 'flight') iconName = 'flight'
-            else if (type === 'walk') iconName = 'directions_walk'
-            else if (type === 'bicycle') iconName = 'directions_bike'
-            else iconName = 'circle'
-
-            // Build text without icon
-            const textOnly = `${typeText} • ${selectedOption.duration}${selectedOption.cost ? ' • ' + selectedOption.cost : ''}`
-
-            const iconSize = 16
-            const iconPadding = 6
-
-            // Measure text to get width
-            ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
-            const textMetrics = ctx.measureText(textOnly)
-            const textWidth = textMetrics.width
-
-            // Measure icon width
-            ctx.font = `${iconSize}px "Material Icons"`
-            const iconMetrics = ctx.measureText(iconName)
-            const iconWidth = iconMetrics.width || iconSize
-
-            const totalWidth = iconWidth + iconPadding + textWidth
-            const startX = -totalWidth / 2
-
-            // Draw Material Icon
-            ctx.textAlign = 'left'
-            ctx.textBaseline = 'middle'
-            ctx.fillStyle = '#007aff'
-            ctx.font = `${iconSize}px "Material Icons"`
-            ctx.fillText(iconName, startX, offsetY + 8)
-
-            // Draw text
-            ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
-            ctx.fillStyle = '#000000'
-            ctx.fillText(textOnly, startX + iconWidth + iconPadding, offsetY + 8)
-
-            ctx.restore()
-        }
-
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(start.x, start.y, 5, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.beginPath()
-        ctx.arc(end.x, end.y, 5, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.restore()
-    }
-
-    // Convert hex color to muted (lighter) version
-    const getMutedColor = (hexColor: string): { r: number; g: number; b: number } => {
-        // Remove # if present
-        const hex = hexColor.replace('#', '')
-        
-        // Parse RGB
-        const r = parseInt(hex.substring(0, 2), 16)
-        const g = parseInt(hex.substring(2, 4), 16)
-        const b = parseInt(hex.substring(4, 6), 16)
-        
-        // Lighten by mixing with white (60% white, 40% original)
-        const lightenFactor = 0.6
-        return {
-            r: Math.round(r + (255 - r) * lightenFactor),
-            g: Math.round(g + (255 - g) * lightenFactor),
-            b: Math.round(b + (255 - b) * lightenFactor)
-        }
-    }
-
-    // Check if a point is near a location icon (within clickable radius)
+    // Check if a point is near a location pin (within clickable radius)
     const findPinAtPosition = (x: number, y: number): number | null => {
-        const clickRadius = 30 // Radius to detect clicks on location icons
+        const clickRadius = 30 // Radius to detect clicks on location pins
 
         for (let i = pins.length - 1; i >= 0; i--) {
             const pin = pins[i]
-            // Check distance from location icon position
+            // Check distance from location pin position
             const dx = x - pin.x
             const dy = y - pin.y
             const distance = Math.sqrt(dx * dx + dy * dy)
@@ -382,17 +227,6 @@ export const useLocationTool = (
             return newPins
         })
 
-        // Clear canvas and trigger redraw immediately
-        if (canvasRefForRedraw.current) {
-            const canvas = canvasRefForRedraw.current
-            const ctx = canvas.getContext('2d')
-            if (ctx) {
-                // Clear canvas
-                ctx.fillStyle = '#ffffff'
-                ctx.fillRect(0, 0, canvas.width, canvas.height)
-            }
-        }
-
         // Save to history after a small delay to ensure state update is complete
         if (deps.saveToHistory) {
             setTimeout(() => {
@@ -413,11 +247,7 @@ export const useLocationTool = (
             return
         }
 
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        // Get canvas dimensions in CSS pixels (not accounting for device pixel ratio)
-        // The canvas context is already scaled for DPR
+        // Get canvas dimensions in CSS pixels
         const rect = canvas.getBoundingClientRect()
         const x = rect.width / 2
         const y = rect.height / 2
@@ -435,9 +265,6 @@ export const useLocationTool = (
             ...(prediction?.placeId && { placeId: prediction.placeId })
         }
 
-        // Draw location on canvas immediately
-        drawLocation(ctx, x, y, pinColor, pinLocation)
-
         // Add pin to state
         setPins(prev => [...prev, newPin])
 
@@ -451,135 +278,6 @@ export const useLocationTool = (
         setShowSuggestions(false)
     }
 
-    // Draw location-outline icon on canvas using SVG path from map-pin-thin.svg
-    // The SVG has viewBox="0 0 24 24" with the pin point at (12, 22)
-    const drawLocationIcon = (
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        color: string,
-        size: number = 24
-    ) => {
-        ctx.save()
-        
-        // Scale factor: size / 24 (since SVG viewBox is 24x24)
-        const scale = size / 24
-        
-        // Translate so the pin point (12, 22 in SVG coordinates) is at (x, y)
-        ctx.translate(x, y)
-        ctx.scale(scale, scale)
-        ctx.translate(-12, -22)
-        
-        // Set stroke style to match SVG
-        ctx.strokeStyle = color
-        ctx.fillStyle = 'transparent'
-        ctx.lineWidth = 1.2
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        
-        // Draw the pin shape based on SVG coordinates
-        // The pin is a teardrop: circle at top (center 12, 11.5, radius 5) with point at bottom (12, 22)
-        const centerX = 12
-        const centerY = 11.5
-        const radius = 5
-        const pointX = 12
-        const pointY = 22
-        
-        ctx.beginPath()
-        // Start at the bottom point
-        ctx.moveTo(pointX, pointY)
-        // Draw left curve from point to left side of circle
-        // Using bezier curve to approximate the smooth curve
-        ctx.bezierCurveTo(
-            centerX - radius, centerY + 5.3, // Control point 1
-            centerX - radius, centerY,      // Control point 2
-            centerX - radius, centerY       // End at left side of circle
-        )
-        // Draw top arc (semicircle from left to right)
-        ctx.arc(centerX, centerY, radius, Math.PI, 0, false)
-        // Draw right curve from right side of circle back to point
-        ctx.bezierCurveTo(
-            centerX + radius, centerY,       // Control point 1
-            centerX + radius, centerY + 5.3, // Control point 2
-            pointX, pointY                   // Back to point
-        )
-        ctx.closePath()
-        ctx.stroke()
-        
-        // Draw the inner circle: cx="12" cy="11.5" r="2.4"
-        ctx.beginPath()
-        ctx.arc(centerX, centerY, 2.4, 0, Math.PI * 2)
-        ctx.stroke()
-        
-        ctx.restore()
-    }
-
-    // Draw location with location-outline icon + badge
-    const drawLocation = (
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        color: string,
-        location: string
-    ) => {
-        ctx.save()
-        
-        const iconSize = 24
-        const iconX = x
-        const iconY = y
-        
-        // Draw location-outline icon (black)
-        drawLocationIcon(ctx, iconX, iconY, '#000000', iconSize)
-
-        // Draw badge with location text
-        if (location) {
-            const padding = 6
-            const badgePadding = 4
-            
-            ctx.font = '12px Arial, sans-serif'
-            ctx.textAlign = 'left'
-            ctx.textBaseline = 'middle'
-            
-            const textMetrics = ctx.measureText(location)
-            const textWidth = textMetrics.width
-            const textHeight = 16
-            // Position badge to the right of the icon, aligned with the circle part
-            const badgeX = iconX + iconSize * 0.5 + padding
-            const badgeY = iconY - iconSize * 0.35
-
-            // Draw badge background (rounded rectangle) - white background
-            const badgeWidth = textWidth + badgePadding * 2
-            const badgeHeight = textHeight + badgePadding * 2
-            const radius = 6
-
-            // White background
-            ctx.fillStyle = '#ffffff'
-            ctx.beginPath()
-            ctx.moveTo(badgeX + radius, badgeY - badgeHeight / 2)
-            ctx.lineTo(badgeX + badgeWidth - radius, badgeY - badgeHeight / 2)
-            ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY - badgeHeight / 2, badgeX + badgeWidth, badgeY - badgeHeight / 2 + radius)
-            ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight / 2 - radius)
-            ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight / 2, badgeX + badgeWidth - radius, badgeY + badgeHeight / 2)
-            ctx.lineTo(badgeX + radius, badgeY + badgeHeight / 2)
-            ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight / 2, badgeX, badgeY + badgeHeight / 2 - radius)
-            ctx.lineTo(badgeX, badgeY - badgeHeight / 2 + radius)
-            ctx.quadraticCurveTo(badgeX, badgeY - badgeHeight / 2, badgeX + radius, badgeY - badgeHeight / 2)
-            ctx.closePath()
-            ctx.fill()
-
-            // Draw black border/stroke
-            ctx.strokeStyle = '#000000'
-            ctx.lineWidth = 1
-            ctx.stroke()
-
-            // Draw text in badge (black text)
-            ctx.fillStyle = '#000000'
-            ctx.fillText(location, badgeX + badgePadding, badgeY)
-        }
-
-        ctx.restore()
-    }
-
     const onMouseDown = (
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
         e: React.MouseEvent<HTMLCanvasElement>,
@@ -588,13 +286,10 @@ export const useLocationTool = (
         const canvas = canvasRef.current
         if (!canvas) return
 
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
         const { x, y } = getCoordinates(canvasRef, e)
         canvasRefForRedraw.current = canvas
 
-        // Check if clicking on an existing location icon
+        // Check if clicking on an existing location pin
         const pinIndex = findPinAtPosition(x, y)
 
         // Handle delete mode - delete the pin if clicked
@@ -608,9 +303,12 @@ export const useLocationTool = (
             // Select this location and prepare for dragging
             setSelectedPinIndex(pinIndex)
 
-            // Save the current canvas state (with all locations) for potential dragging
-            const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            canvasStateBeforeDrag.current = currentState
+            const pin = pins[pinIndex]
+            // Calculate offset from pin center
+            dragOffset.current = {
+                x: x - pin.x,
+                y: y - pin.y
+            }
 
             // Track mouse down position to detect if it's a click or drag
             mouseDownPosition.current = { x, y }
@@ -636,7 +334,7 @@ export const useLocationTool = (
     ) => {
         const { x, y } = getCoordinates(canvasRef, e)
 
-        if (isDragging && selectedPinIndex !== null && canvasStateBeforeDrag.current) {
+        if (isDragging && selectedPinIndex !== null && dragOffset.current) {
             // Mark that we've moved (not just a click)
             if (mouseDownPosition.current) {
                 const dx = x - mouseDownPosition.current.x
@@ -647,126 +345,178 @@ export const useLocationTool = (
                 }
             }
 
-            const canvas = canvasRef.current
-            if (!canvas) return
+                // Update pin position in real-time during drag
+                const newX = x - dragOffset.current.x
+                const newY = y - dragOffset.current.y
 
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return
-
-            // Restore the original canvas state (this has all the drawing + all pins)
-            ctx.putImageData(canvasStateBeforeDrag.current, 0, 0)
-
-            const pin = pins[selectedPinIndex]
-            if (pin) {
-                const color = (pin as any).color || pinColor
-                
-                // Calculate the area to clear (old location icon + badge)
-                const iconSize = 24
-                ctx.font = '12px Arial, sans-serif'
-                const textWidth = ctx.measureText(pin.location).width
-                const clearWidth = iconSize * 0.6 + textWidth + 50
-                const clearHeight = iconSize + 30
-
-                // Clear the old location (erase old icon + badge)
-                ctx.fillStyle = '#ffffff'
-                ctx.fillRect(
-                    pin.x - 10,
-                    pin.y - iconSize - 15,
-                    clearWidth,
-                    clearHeight
-                )
-
-                // Draw the location at new position
-                drawLocation(ctx, x, y, color, pin.location)
-            }
+                setPins(prev => {
+                    const newPins = [...prev]
+                    if (selectedPinIndex < newPins.length) {
+                        newPins[selectedPinIndex] = {
+                            ...newPins[selectedPinIndex],
+                            x: newX,
+                            y: newY
+                        }
+                    }
+                    return newPins
+                })
         } else {
-            // Always check if hovering over a location icon (for cursor change)
+            // Always check if hovering over a location pin (for cursor change)
             const pinIndex = findPinAtPosition(x, y)
             setHoverPinIndex(pinIndex)
         }
     }
 
     const onMouseUp = (
-        canvasRef: React.RefObject<HTMLCanvasElement | null>,
-        e: React.MouseEvent<HTMLCanvasElement>,
-        deps: Record<string, any>
+        _canvasRef: React.RefObject<HTMLCanvasElement | null>,
+        _e: React.MouseEvent<HTMLCanvasElement>,
+        _deps: Record<string, any>
     ) => {
-        if (isDragging && selectedPinIndex !== null) {
-            const { x, y } = getCoordinates(canvasRef, e)
-
-            // Only update position if the pin was actually dragged
-            if (hasMoved.current) {
-                // Update pin position permanently
-                setPins(prev => {
-                    const newPins = [...prev]
-                    if (selectedPinIndex < newPins.length) {
-                        newPins[selectedPinIndex] = {
-                            ...newPins[selectedPinIndex],
-                            x,
-                            y
-                        }
-                    }
-                    return newPins
-                })
-
-                // Save to history after dragging
-                if (deps.saveToHistory) {
-                    deps.saveToHistory()
-                }
-            } else {
-                // It was just a click (selection), restore canvas to original state
-                const canvas = canvasRef.current
-                if (canvas && canvasStateBeforeDrag.current) {
-                    const ctx = canvas.getContext('2d')
-                    if (ctx) {
-                        ctx.putImageData(canvasStateBeforeDrag.current, 0, 0)
-                    }
-                }
-            }
-
-            setIsDragging(false)
-            // Keep the pin selected for editing
-            // setSelectedPinIndex(null) - don't clear selection
-            canvasStateBeforeDrag.current = null
-            mouseDownPosition.current = null
-            hasMoved.current = false
-        }
+        // Handled by global mouse up handler
     }
 
     const onMouseLeave = (
-        canvasRef: React.RefObject<HTMLCanvasElement | null>,
-        e: React.MouseEvent<HTMLCanvasElement>,
-        deps: Record<string, any>
+        _canvasRef: React.RefObject<HTMLCanvasElement | null>,
+        _e: React.MouseEvent<HTMLCanvasElement>,
+        _deps: Record<string, any>
     ) => {
-        if (isDragging && selectedPinIndex !== null) {
-            const { x, y } = getCoordinates(canvasRef, e)
+        // Handled by global mouse up handler
+    }
 
-            // Only update position if the pin was actually dragged
-            if (hasMoved.current) {
-                // Update pin position permanently
-                setPins(prev => {
-                    const newPins = [...prev]
-                    if (selectedPinIndex < newPins.length) {
-                        newPins[selectedPinIndex] = {
-                            ...newPins[selectedPinIndex],
-                            x,
-                            y
-                        }
-                    }
-                    return newPins
-                })
+    // Global mouse event handlers for dragging (attached to document)
+    useEffect(() => {
+        if (!isDragging) return
 
-                // Save to history after dragging
-                if (deps.saveToHistory) {
-                    deps.saveToHistory()
+        const handleGlobalMouseMove = (e: MouseEvent) => {
+            if (!isDragging || selectedPinIndex === null || !dragOffset.current) return
+
+            const canvas = canvasRefForRedraw.current
+            if (!canvas) return
+
+            const rect = canvas.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const y = e.clientY - rect.top
+
+            // Mark that we've moved (not just a click)
+            if (mouseDownPosition.current) {
+                const dx = x - mouseDownPosition.current.x
+                const dy = y - mouseDownPosition.current.y
+                const distance = Math.sqrt(dx * dx + dy * dy)
+                if (distance > 3) { // Threshold to detect drag vs click
+                    hasMoved.current = true
                 }
             }
 
-            setIsDragging(false)
-            canvasStateBeforeDrag.current = null
-            mouseDownPosition.current = null
-            hasMoved.current = false
+            // Update pin position in real-time during drag
+            const newX = x - dragOffset.current.x
+            const newY = y - dragOffset.current.y
+
+            setPins(prev => {
+                const newPins = [...prev]
+                if (selectedPinIndex < newPins.length) {
+                    newPins[selectedPinIndex] = {
+                        ...newPins[selectedPinIndex],
+                        x: newX,
+                        y: newY
+                    }
+                }
+                return newPins
+            })
         }
+
+        const handleGlobalMouseUp = () => {
+            if (isDragging && selectedPinIndex !== null) {
+                // Save to history if pin was actually moved
+                if (hasMoved.current && depsRef.current?.saveToHistory) {
+                    depsRef.current.saveToHistory()
+                }
+                
+                setIsDragging(false)
+                dragOffset.current = null
+                mouseDownPosition.current = null
+                hasMoved.current = false
+            }
+        }
+
+        document.addEventListener('mousemove', handleGlobalMouseMove)
+        document.addEventListener('mouseup', handleGlobalMouseUp)
+
+        return () => {
+            document.removeEventListener('mousemove', handleGlobalMouseMove)
+            document.removeEventListener('mouseup', handleGlobalMouseUp)
+        }
+    }, [isDragging, selectedPinIndex, pins])
+
+    // Handle pin element mouse down
+    const handlePinMouseDown = (e: React.MouseEvent, pinIndex: number, pin: LocationPin) => {
+        e.stopPropagation()
+        
+        const canvas = canvasRefForRedraw.current
+        if (!canvas) return
+
+        const rect = canvas.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+
+        // Handle delete mode - delete the pin if clicked
+        if (isDeleteMode) {
+            handleDeletePin(pinIndex, { saveToHistory: () => {} })
+            return
+        }
+
+        // Select this location and prepare for dragging
+        setSelectedPinIndex(pinIndex)
+
+        // Calculate offset from pin center
+        dragOffset.current = {
+            x: x - pin.x,
+            y: y - pin.y
+        }
+
+        // Track mouse down position to detect if it's a click or drag
+        mouseDownPosition.current = { x, y }
+        hasMoved.current = false
+
+        // Start dragging existing location
+        setIsDragging(true)
+    }
+
+    // Store deps ref for saving history after drag
+    const depsRef = useRef<Record<string, any> | null>(null)
+
+    // Render location pins as HTML elements
+    const renderLocationPins = (deps: Record<string, any>): ReactNode => {
+        // Store deps in ref for use in global mouse handlers
+        depsRef.current = deps
+
+        return (
+            <div className="location-pins-overlay">
+                {pins.map((pin, index) => (
+                    <LocationPinElement
+                        key={pin.id}
+                        pin={pin}
+                        isSelected={selectedPinIndex === index}
+                        isHovered={hoverPinIndex === index}
+                        isDeleteMode={isDeleteMode}
+                        onMouseDown={(e) => handlePinMouseDown(e, index, pin)}
+                        onMouseEnter={() => setHoverPinIndex(index)}
+                        onMouseLeave={() => {
+                            if (hoverPinIndex === index) {
+                                setHoverPinIndex(null)
+                            }
+                        }}
+                        style={{
+                            position: 'absolute',
+                            left: `${pin.x}px`,
+                            top: `${pin.y}px`,
+                            transform: 'translate(-50%, -100%)',
+                            pointerEvents: 'auto', // Pins handle their own events
+                            zIndex: selectedPinIndex === index ? 1000 : 100
+                        }}
+                    />
+                ))}
+            </div>
+        )
     }
 
     const toolbar = (deps: Record<string, any>) => (
@@ -805,6 +555,7 @@ export const useLocationTool = (
 
     return {
         toolbar,
+        locationPins: (deps: Record<string, any>) => renderLocationPins(deps),
         cursor: isDeleteMode 
             ? (hoverPinIndex !== null ? 'pointer' : 'default')
             : (hoverPinIndex !== null ? 'move' : 'default'),
