@@ -13,7 +13,8 @@ interface Point {
 export const useLocationTool = (
     pins: LocationPin[],
     setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
-    transitLines: any[] = []
+    transitLines: any[] = [],
+    setTransitLines?: React.Dispatch<React.SetStateAction<any[]>>
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
@@ -376,11 +377,22 @@ export const useLocationTool = (
     const handleDeletePin = (pinIndex: number, deps: Record<string, any>) => {
         if (pinIndex === null || pinIndex < 0 || pinIndex >= pins.length) return
 
+        const pinToDelete = pins[pinIndex]
+
         // Remove the pin from the array
         setPins(prev => {
             const newPins = prev.filter((_, index) => index !== pinIndex)
             return newPins
         })
+
+        // Delete any transit lines connected to this pin
+        if (setTransitLines && pinToDelete) {
+            setTransitLines(prev =>
+                prev.filter(line =>
+                    line.startPinId !== pinToDelete.id && line.endPinId !== pinToDelete.id
+                )
+            )
+        }
 
         // Clear canvas and trigger redraw immediately
         if (canvasRefForRedraw.current) {
