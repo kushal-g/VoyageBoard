@@ -184,7 +184,7 @@ export default function CanvasPage(props: CanvasPageProps) {
       <IonHeader>
         <IonToolbar className="canvas-header">
           <IonButtons slot="start">
-            <IonButton routerLink="/home">
+            <IonButton routerLink="/home" routerDirection="back">
               <IonIcon icon={chevronBack} />
             </IonButton>
 
