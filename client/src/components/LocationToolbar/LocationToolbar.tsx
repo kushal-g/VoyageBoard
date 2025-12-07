@@ -4,7 +4,6 @@ import { Button } from '@/components/tiptap-ui-primitive/button'
 import { UndoIcon } from '@/components/icons/undo-icon'
 import { RedoIcon } from '@/components/icons/redo-icon'
 import { LocationPinIcon } from '@/components/icons/location-pin-icon'
-import { DragMove2LineIcon } from '@/components/icons/drag-move-2-line-icon'
 import { TrashIcon } from '@/components/icons/trash-icon'
 import './LocationToolbar.css'
 
@@ -27,8 +26,6 @@ interface LocationToolbarProps {
   onLocationChange: (location: string) => void
   onAddLocation: (canvasRef: React.RefObject<HTMLCanvasElement | null>) => void
   inputRef: React.RefObject<HTMLInputElement | null>
-  isSelectMode: boolean
-  onSelectModeToggle: () => void
   isDeleteMode: boolean
   onDeleteModeToggle: () => void
   isLoadingSuggestions?: boolean
@@ -44,8 +41,6 @@ export default function LocationToolbar({
   onLocationChange,
   onAddLocation,
   inputRef,
-  isSelectMode,
-  onSelectModeToggle,
   isDeleteMode,
   onDeleteModeToggle,
   isLoadingSuggestions = false,
@@ -93,18 +88,8 @@ export default function LocationToolbar({
           </Button>
         </ToolbarGroup>
 
-        {/* Group 2: Select and Delete Buttons */}
+        {/* Group 2: Delete Button */}
         <ToolbarGroup className="toolbar-group">
-          <Button
-            variant="icon"
-            data-style="ghost"
-            data-active={isSelectMode}
-            onClick={onSelectModeToggle}
-            aria-label="Select Mode"
-            title="Enable dragging mode for location flags"
-          >
-            <DragMove2LineIcon />
-          </Button>
           <Button
             variant="icon"
             data-style="ghost"
