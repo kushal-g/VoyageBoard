@@ -105,10 +105,10 @@ export const useLocationTool = (
             ctx.fillStyle = '#ffffff'
             ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-            // Redraw all locations with flag + badge
+            // Redraw all locations with location icon + badge
             if (pins.length > 0) {
                 pins.forEach(pin => {
-                    // Draw location with flag + badge (use pin's color if stored, otherwise default)
+                    // Draw location with location icon + badge (use pin's color if stored, otherwise default)
                     const color = (pin as any).color || pinColor
                     drawLocation(ctx, pin.x, pin.y, color, pin.location)
                 })
@@ -349,13 +349,13 @@ export const useLocationTool = (
         }
     }
 
-    // Check if a point is near a location flag (within clickable radius)
+    // Check if a point is near a location icon (within clickable radius)
     const findPinAtPosition = (x: number, y: number): number | null => {
-        const clickRadius = 30 // Radius to detect clicks on flag icons
+        const clickRadius = 30 // Radius to detect clicks on location icons
 
         for (let i = pins.length - 1; i >= 0; i--) {
             const pin = pins[i]
-            // Check distance from flag pole position
+            // Check distance from location icon position
             const dx = x - pin.x
             const dy = y - pin.y
             const distance = Math.sqrt(dx * dx + dy * dy)
@@ -461,8 +461,9 @@ export const useLocationTool = (
         setShowSuggestions(false)
     }
 
-    // Draw flag icon on canvas
-    const drawFlagIcon = (
+    // Draw location-outline icon on canvas using SVG path from map-pin-thin.svg
+    // The SVG has viewBox="0 0 24 24" with the pin point at (12, 22)
+    const drawLocationIcon = (
         ctx: CanvasRenderingContext2D,
         x: number,
         y: number,
@@ -470,33 +471,60 @@ export const useLocationTool = (
         size: number = 24
     ) => {
         ctx.save()
+        
+        // Scale factor: size / 24 (since SVG viewBox is 24x24)
+        const scale = size / 24
+        
+        // Translate so the pin point (12, 22 in SVG coordinates) is at (x, y)
+        ctx.translate(x, y)
+        ctx.scale(scale, scale)
+        ctx.translate(-12, -22)
+        
+        // Set stroke style to match SVG
         ctx.strokeStyle = color
-        ctx.fillStyle = color
-        ctx.lineWidth = 2
+        ctx.fillStyle = 'transparent'
+        ctx.lineWidth = 1.2
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
-
-        // Flag pole (vertical line)
+        
+        // Draw the pin shape based on SVG coordinates
+        // The pin is a teardrop: circle at top (center 12, 11.5, radius 5) with point at bottom (12, 22)
+        const centerX = 12
+        const centerY = 11.5
+        const radius = 5
+        const pointX = 12
+        const pointY = 22
+        
         ctx.beginPath()
-        ctx.moveTo(x, y)
-        ctx.lineTo(x, y - size * 0.8)
-        ctx.stroke()
-
-        // Flag shape (rectangle)
-        const flagWidth = size * 0.6
-        const flagHeight = size * 0.4
-        ctx.beginPath()
-        ctx.moveTo(x, y - size * 0.8)
-        ctx.lineTo(x + flagWidth, y - size * 0.8)
-        ctx.lineTo(x + flagWidth, y - size * 0.8 + flagHeight)
-        ctx.lineTo(x, y - size * 0.8 + flagHeight)
+        // Start at the bottom point
+        ctx.moveTo(pointX, pointY)
+        // Draw left curve from point to left side of circle
+        // Using bezier curve to approximate the smooth curve
+        ctx.bezierCurveTo(
+            centerX - radius, centerY + 5.3, // Control point 1
+            centerX - radius, centerY,      // Control point 2
+            centerX - radius, centerY       // End at left side of circle
+        )
+        // Draw top arc (semicircle from left to right)
+        ctx.arc(centerX, centerY, radius, Math.PI, 0, false)
+        // Draw right curve from right side of circle back to point
+        ctx.bezierCurveTo(
+            centerX + radius, centerY,       // Control point 1
+            centerX + radius, centerY + 5.3, // Control point 2
+            pointX, pointY                   // Back to point
+        )
         ctx.closePath()
-        ctx.fill()
-
+        ctx.stroke()
+        
+        // Draw the inner circle: cx="12" cy="11.5" r="2.4"
+        ctx.beginPath()
+        ctx.arc(centerX, centerY, 2.4, 0, Math.PI * 2)
+        ctx.stroke()
+        
         ctx.restore()
     }
 
-    // Draw location with flag icon + badge
+    // Draw location with location-outline icon + badge
     const drawLocation = (
         ctx: CanvasRenderingContext2D,
         x: number,
@@ -506,16 +534,15 @@ export const useLocationTool = (
     ) => {
         ctx.save()
         
-        const flagSize = 24
-        const flagPoleX = x
-        const flagPoleY = y
+        const iconSize = 24
+        const iconX = x
+        const iconY = y
         
-        // Draw flag icon
-        drawFlagIcon(ctx, flagPoleX, flagPoleY, color, flagSize)
+        // Draw location-outline icon (black)
+        drawLocationIcon(ctx, iconX, iconY, '#000000', iconSize)
 
         // Draw badge with location text
         if (location) {
-            const mutedColor = getMutedColor(color)
             const padding = 6
             const badgePadding = 4
             
@@ -526,15 +553,17 @@ export const useLocationTool = (
             const textMetrics = ctx.measureText(location)
             const textWidth = textMetrics.width
             const textHeight = 16
-            const badgeX = flagPoleX + flagSize * 0.6 + padding
-            const badgeY = flagPoleY - flagSize * 0.6
+            // Position badge to the right of the icon, aligned with the circle part
+            const badgeX = iconX + iconSize * 0.5 + padding
+            const badgeY = iconY - iconSize * 0.35
 
-            // Draw badge background (rounded rectangle)
+            // Draw badge background (rounded rectangle) - white background
             const badgeWidth = textWidth + badgePadding * 2
             const badgeHeight = textHeight + badgePadding * 2
             const radius = 6
 
-            ctx.fillStyle = `rgba(${mutedColor.r}, ${mutedColor.g}, ${mutedColor.b}, 0.9)`
+            // White background
+            ctx.fillStyle = '#ffffff'
             ctx.beginPath()
             ctx.moveTo(badgeX + radius, badgeY - badgeHeight / 2)
             ctx.lineTo(badgeX + badgeWidth - radius, badgeY - badgeHeight / 2)
@@ -548,13 +577,13 @@ export const useLocationTool = (
             ctx.closePath()
             ctx.fill()
 
-            // Draw border
-            ctx.strokeStyle = color
+            // Draw black border/stroke
+            ctx.strokeStyle = '#000000'
             ctx.lineWidth = 1
             ctx.stroke()
 
-            // Draw text in badge
-            ctx.fillStyle = color
+            // Draw text in badge (black text)
+            ctx.fillStyle = '#000000'
             ctx.fillText(location, badgeX + badgePadding, badgeY)
         }
 
@@ -575,7 +604,7 @@ export const useLocationTool = (
         const { x, y } = getCoordinates(canvasRef, e)
         canvasRefForRedraw.current = canvas
 
-        // Check if clicking on an existing location flag
+        // Check if clicking on an existing location icon
         const pinIndex = findPinAtPosition(x, y)
 
         // Handle delete mode - delete the pin if clicked
@@ -641,18 +670,18 @@ export const useLocationTool = (
             if (pin) {
                 const color = (pin as any).color || pinColor
                 
-                // Calculate the area to clear (old location flag + badge)
-                const flagSize = 24
+                // Calculate the area to clear (old location icon + badge)
+                const iconSize = 24
                 ctx.font = '12px Arial, sans-serif'
                 const textWidth = ctx.measureText(pin.location).width
-                const clearWidth = flagSize * 0.6 + textWidth + 50
-                const clearHeight = flagSize + 30
+                const clearWidth = iconSize * 0.6 + textWidth + 50
+                const clearHeight = iconSize + 30
 
-                // Clear the old location (erase old flag + badge)
+                // Clear the old location (erase old icon + badge)
                 ctx.fillStyle = '#ffffff'
                 ctx.fillRect(
                     pin.x - 10,
-                    pin.y - flagSize - 15,
+                    pin.y - iconSize - 15,
                     clearWidth,
                     clearHeight
                 )
@@ -661,7 +690,7 @@ export const useLocationTool = (
                 drawLocation(ctx, x, y, color, pin.location)
             }
         } else if (isSelectMode || isDeleteMode) {
-            // Check if hovering over a location flag (for cursor change)
+            // Check if hovering over a location icon (for cursor change)
             const pinIndex = findPinAtPosition(x, y)
             setHoverPinIndex(pinIndex)
         }
