@@ -54,26 +54,35 @@ export default function GroupToolbar({
   const [showGroupsMenu, setShowGroupsMenu] = useState(false)
   
   const colorPickerRef = useRef<HTMLDivElement>(null)
+  const colorInputRef = useRef<HTMLInputElement>(null)
   const groupsMenuRef = useRef<HTMLDivElement>(null)
 
-  // Close popovers when clicking outside
+  // Auto-open color picker when popover is shown
+  useEffect(() => {
+    if (showColorPicker && colorInputRef.current) {
+      // Small delay to ensure popover is rendered
+      setTimeout(() => {
+        colorInputRef.current?.click()
+      }, 10)
+    }
+  }, [showColorPicker])
+
+  // Close popovers when clicking outside (only for groups menu, not color picker)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
-        setShowColorPicker(false)
-      }
       if (groupsMenuRef.current && !groupsMenuRef.current.contains(event.target as Node)) {
         setShowGroupsMenu(false)
       }
+      // Note: Color picker should only close via X button, not outside click
     }
 
-    if (showColorPicker || showGroupsMenu) {
+    if (showGroupsMenu) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [showColorPicker, showGroupsMenu])
+  }, [showGroupsMenu])
 
   return (
     <div className="group-toolbar-container">
@@ -117,13 +126,24 @@ export default function GroupToolbar({
               />
             </Button>
             {showColorPicker && (
-              <div className="popover">
+              <div className="popover color-picker-popover">
+                <div className="color-picker-header">
+                  <span>Select Color</span>
+                  <button
+                    className="color-picker-close"
+                    onClick={() => setShowColorPicker(false)}
+                    aria-label="Close color picker"
+                  >
+                    ×
+                  </button>
+                </div>
                 <input
+                  ref={colorInputRef}
                   type="color"
                   value={groupColor}
                   onChange={(e) => {
                     setGroupColor(e.target.value)
-                    setShowColorPicker(false)
+                    // Don't close on color change - only close via X button
                   }}
                   className="color-picker-input"
                 />

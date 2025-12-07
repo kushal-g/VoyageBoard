@@ -46,30 +46,39 @@ export default function DoodleToolbar({
   const [showEraserSizePicker, setShowEraserSizePicker] = useState(false)
   
   const colorPickerRef = useRef<HTMLDivElement>(null)
+  const colorInputRef = useRef<HTMLInputElement>(null)
   const penSizePickerRef = useRef<HTMLDivElement>(null)
   const eraserSizePickerRef = useRef<HTMLDivElement>(null)
 
-  // Close popovers when clicking outside
+  // Auto-open color picker when popover is shown
+  useEffect(() => {
+    if (showColorPicker && colorInputRef.current) {
+      // Small delay to ensure popover is rendered
+      setTimeout(() => {
+        colorInputRef.current?.click()
+      }, 10)
+    }
+  }, [showColorPicker])
+
+  // Close popovers when clicking outside (only for pen/eraser size, not color picker)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
-        setShowColorPicker(false)
-      }
       if (penSizePickerRef.current && !penSizePickerRef.current.contains(event.target as Node)) {
         setShowPenSizePicker(false)
       }
       if (eraserSizePickerRef.current && !eraserSizePickerRef.current.contains(event.target as Node)) {
         setShowEraserSizePicker(false)
       }
+      // Note: Color picker should only close via X button, not outside click
     }
 
-    if (showColorPicker || showPenSizePicker || showEraserSizePicker) {
+    if (showPenSizePicker || showEraserSizePicker) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [showColorPicker, showPenSizePicker, showEraserSizePicker])
+  }, [showPenSizePicker, showEraserSizePicker])
 
   return (
     <div className="doodle-toolbar-container">
@@ -139,13 +148,24 @@ export default function DoodleToolbar({
                   />
                 </Button>
                 {showColorPicker && (
-                  <div className="popover">
+                  <div className="popover color-picker-popover">
+                    <div className="color-picker-header">
+                      <span>Select Color</span>
+                      <button
+                        className="color-picker-close"
+                        onClick={() => setShowColorPicker(false)}
+                        aria-label="Close color picker"
+                      >
+                        ×
+                      </button>
+                    </div>
                     <input
+                      ref={colorInputRef}
                       type="color"
                       value={color}
                       onChange={(e) => {
                         setColor(e.target.value)
-                        setShowColorPicker(false)
+                        // Don't close on color change - only close via X button
                       }}
                       className="color-picker-input"
                     />
