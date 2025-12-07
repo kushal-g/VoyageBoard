@@ -445,6 +445,88 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         activeTool?.onMouseDown(canvasRef, e, toolDeps)
     }, [activeTool, toolDeps])
 
+    // Convert touch events to mouse events for iPad support
+    const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+        if (e.touches.length !== 1) return
+        e.preventDefault()
+
+        const touch = e.touches[0]
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            bubbles: true
+        })
+
+        // Create a synthetic React MouseEvent
+        const syntheticEvent = {
+            ...mouseEvent,
+            currentTarget: e.currentTarget,
+            target: e.target,
+            nativeEvent: mouseEvent,
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation(),
+            isPropagationStopped: () => false,
+            persist: () => {},
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        } as unknown as React.MouseEvent<HTMLCanvasElement>
+
+        activeTool?.onMouseDown(canvasRef, syntheticEvent, toolDeps)
+    }, [activeTool, toolDeps, canvasRef])
+
+    const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+        if (e.touches.length !== 1) return
+        e.preventDefault()
+
+        const touch = e.touches[0]
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            bubbles: true
+        })
+
+        const syntheticEvent = {
+            ...mouseEvent,
+            currentTarget: e.currentTarget,
+            target: e.target,
+            nativeEvent: mouseEvent,
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation(),
+            isPropagationStopped: () => false,
+            persist: () => {},
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        } as unknown as React.MouseEvent<HTMLCanvasElement>
+
+        activeTool?.onMouseMove(canvasRef, syntheticEvent, toolDeps)
+    }, [activeTool, toolDeps, canvasRef])
+
+    const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+        e.preventDefault()
+
+        const touch = e.changedTouches[0]
+        const mouseEvent = new MouseEvent('mouseup', {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            bubbles: true
+        })
+
+        const syntheticEvent = {
+            ...mouseEvent,
+            currentTarget: e.currentTarget,
+            target: e.target,
+            nativeEvent: mouseEvent,
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation(),
+            isPropagationStopped: () => false,
+            persist: () => {},
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        } as unknown as React.MouseEvent<HTMLCanvasElement>
+
+        activeTool?.onMouseUp(canvasRef, syntheticEvent, toolDeps)
+    }, [activeTool, toolDeps, canvasRef])
+
     return (
         <div className="canvas-container">
             <canvas
@@ -453,8 +535,12 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                 onMouseMove={(e) => activeTool?.onMouseMove(canvasRef, e, toolDeps)}
                 onMouseUp={(e) => activeTool?.onMouseUp(canvasRef, e, toolDeps)}
                 onMouseLeave={(e) => activeTool?.onMouseLeave(canvasRef, e, toolDeps)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
                 className="drawing-canvas"
-                style={{ cursor: activeTool?.cursor || 'crosshair' }}
+                style={{ cursor: activeTool?.cursor || 'crosshair', touchAction: 'none' }}
             />
 
             {activeTool?.cursorElement}
