@@ -149,6 +149,99 @@ app.post('/api/stats/reset', (_req: Request, res: Response): void => {
   }
 });
 
+// Lightweight preview endpoint (no Puppeteer/LLM)
+app.post('/api/preview', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { url } = req.body;
+
+    if (!url || typeof url !== 'string') {
+      res.status(400).json({
+        error: 'Missing or invalid "url" in request body',
+      });
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      res.status(400).json({
+        error: 'Invalid URL format',
+      });
+      return;
+    }
+
+    // Fetch HTML and extract basic metadata
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      res.status(500).json({
+        error: 'Failed to fetch URL',
+        details: `HTTP ${response.status}`
+      });
+      return;
+    }
+
+    const html = await response.text();
+
+    // Extract Open Graph and basic metadata
+    const metadata: any = {};
+
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+    metadata.title = ogTitleMatch?.[1] || titleMatch?.[1] || '';
+
+    // Extract description
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+    const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+    metadata.description = ogDescMatch?.[1] || descMatch?.[1] || '';
+
+    // Extract image URL
+    const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+    const imageUrl = ogImageMatch?.[1] || '';
+
+    // Fetch image and convert to base64
+    let imageBase64 = '';
+    if (imageUrl) {
+      try {
+        const imageResponse = await fetch(imageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+
+        if (imageResponse.ok) {
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+          imageBase64 = `data:${contentType};base64,${buffer.toString('base64')}`;
+        }
+      } catch (imageError) {
+        console.error('Failed to fetch image:', imageError);
+        // Continue without image if fetch fails
+      }
+    }
+
+    res.json({
+      url,
+      title: metadata.title,
+      description: metadata.description,
+      image: imageBase64
+    });
+  } catch (error) {
+    console.error('Preview fetch error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch preview',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Web scraping endpoint
 app.post('/api/scrape', async (req: Request, res: Response): Promise<void> => {
   try {

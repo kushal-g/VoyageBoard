@@ -148,18 +148,74 @@ export default function IdeaDumpPage() {
     else history.goBack()
   }
 
-  function addFromLink() {
+  async function addFromLink() {
     if (!linkValue.trim()) return
     const url = linkValue.trim()
     const p = platformFromUrl(url)
     const id = Math.random().toString(36).slice(2)
 
-    setItems(prev => [
-      { id, title: 'Unprocessed', platform: p, status: 'unprocessed', link: url },
-      ...prev
-    ])
+    // Add item with loading state
+    const newItem: Idea = {
+      id,
+      title: 'Loading preview...',
+      platform: p,
+      status: 'unprocessed',
+      link: url
+    }
 
+    setItems(prev => [newItem, ...prev])
     setLinkValue('')
+
+    // Fetch preview in the background
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url })
+      })
+
+      if (response.ok) {
+        const body: { url: string; title: string; description: string; image: string } = await response.json()
+
+        // Update the item with preview data
+        setItems(prev => prev.map(item => {
+          if (item.id === id) {
+            return {
+              ...item,
+              title: body.title || url,
+              thumb: body.image,
+              platform: body.title || p
+            }
+          }
+          return item
+        }))
+      } else {
+        // If fetch fails, update to show URL as title
+        setItems(prev => prev.map(item => {
+          if (item.id === id) {
+            return {
+              ...item,
+              title: url
+            }
+          }
+          return item
+        }))
+      }
+    } catch (error) {
+      console.error('Error fetching preview:', error)
+      // Update to show URL as title on error
+      setItems(prev => prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            title: url
+          }
+        }
+        return item
+      }))
+    }
   }
 
   function onFileUpload(files: FileList | null) {
@@ -180,32 +236,32 @@ export default function IdeaDumpPage() {
 
   function addLocationToCanvas(idea: Idea) {
     if (!idea.placeId) return
-    
+
     const canvasId = trip?.id || '1'
-    
+
     // Load existing canvas state
     const existingState = loadCanvasStateFromLocalStorage(canvasId)
     const existingPins = existingState?.pins || []
     const existingGroups = existingState?.groups || []
     const existingHistory = existingState?.history || []
     const existingHistoryStep = existingState?.historyStep ?? -1
-    
+
     // Check if this location is already added
     const isAlreadyAdded = existingPins.some(pin => pin.placeId === idea.placeId)
     if (isAlreadyAdded) {
       // Optionally show a message or just return silently
       return
     }
-    
+
     // Use a default canvas size for positioning (will be adjusted when canvas loads)
     const defaultCanvasWidth = 1200
     const defaultCanvasHeight = 800
     const margin = 100
-    
+
     // Generate scattered random position
     const x = margin + Math.random() * (defaultCanvasWidth - 2 * margin)
     const y = margin + Math.random() * (defaultCanvasHeight - 2 * margin)
-    
+
     const newPin: LocationPin = {
       x,
       y,
@@ -214,10 +270,10 @@ export default function IdeaDumpPage() {
       color: '#808080',
       placeId: idea.placeId
     }
-    
+
     // Combine with existing pins
     const allPins = [...existingPins, newPin]
-    
+
     // Save to localStorage
     // Note: We preserve the existing state structure, but don't try to restore ImageData
     // The canvas will handle proper restoration when it loads
@@ -232,7 +288,7 @@ export default function IdeaDumpPage() {
         historyStep: existingHistoryStep,
         timestamp: new Date().toISOString()
       }
-      
+
       const storageKey = `canvas_state_${canvasId}`
       localStorage.setItem(storageKey, JSON.stringify(serialized))
       localStorage.setItem(`canvas_state_${canvasId}_saved`, new Date().toISOString())
@@ -251,37 +307,47 @@ export default function IdeaDumpPage() {
 
     setIsProcessing(true)
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
-        method: "POST",
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: unprocessedItems[0].link, //TODO: Extend to multiple items
-          extractPlaces: true
-        })
-      })
+    const responses: ScrapeApiResponse[] = []
 
-      if (!response.ok) {
-        console.error('Failed to scrape:', response.statusText)
-        setIsProcessing(false)
-        return
+    try {
+      for(const unprocessedItem of unprocessedItems){
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/scrape`, {
+          method: "POST",
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: unprocessedItem.link, //TODO: Extend to multiple items
+            extractPlaces: true
+          })
+        })
+
+        if (!response.ok) {
+          console.error('Failed to scrape:', response.statusText)
+          setIsProcessing(false)
+          return
+        }
+
+        const body: ScrapeApiResponse = await response.json()
+        responses.push(body)
       }
 
-      const body: ScrapeApiResponse = await response.json()
+
 
       // Update items - mark processed item as ready and add extracted places
       setItems(items => {
-        const updatedItems = items.map(item =>
-          item.id === unprocessedItems[0].id
-            ? { ...item, status: 'ready' as Status, title: body.title || item.title }
-            : item
+        const updatedItems = items.filter(item =>
+          item.id !== unprocessedItems[0].id
         )
 
         // Add extracted places as new items
-        const newPlaceItems = (body.extractedPlaces ?? [])
-          .map(place => ({
+        let newPlaceItems: Idea[] = []
+
+        for(const response of responses){
+          const body = response
+
+          newPlaceItems = [...newPlaceItems, ...(body.extractedPlaces ?? [])
+          .map((place: TravelPlace) => ({
             id: place.placeId as string || Math.random().toString(36).slice(2),
             title: place.name,
             platform: body.title ?? "",
@@ -292,94 +358,12 @@ export default function IdeaDumpPage() {
             placeId: place.placeId,
             formattedAddress: place.formattedAddress,
             coordinates: place.coordinates
-          }))
+          }))]
+
+        }
 
         return [...newPlaceItems, ...updatedItems]
       })
-
-      // Automatically save all locations to canvas
-      if (body.extractedPlaces && body.extractedPlaces.length > 0) {
-        const canvasId = trip?.id || '1'
-        
-        // Load existing canvas state
-        const existingState = loadCanvasStateFromLocalStorage(canvasId)
-        const existingPins = existingState?.pins || []
-        const existingGroups = existingState?.groups || []
-        const existingHistory = existingState?.history || []
-        const existingHistoryStep = existingState?.historyStep ?? -1
-        
-        // Get existing canvas image data if available
-        let existingCanvasImageData: ImageData | null = null
-        if (existingState?.canvasImageData) {
-          // We'll need to restore this, but for now we'll create a blank canvas
-          // The canvas will handle restoring the image when it loads
-          existingCanvasImageData = null
-        }
-        
-        // Filter out places that are already in the canvas
-        const existingPlaceIds = new Set(existingPins.map(pin => pin.placeId).filter(Boolean))
-        const placesToAdd = body.extractedPlaces.filter(place => 
-          place.placeId && !existingPlaceIds.has(place.placeId)
-        )
-        
-        if (placesToAdd.length === 0) {
-          // All locations already exist, just navigate to canvas
-          const canvasId = trip?.id || '1'
-          history.push(`/canvas/${canvasId}`, { trip })
-          return
-        }
-        
-        // Create new pins with scattered positions
-        // Use a default canvas size for positioning (will be adjusted when canvas loads)
-        const defaultCanvasWidth = 1200
-        const defaultCanvasHeight = 800
-        const margin = 100
-        
-        const newPins: LocationPin[] = placesToAdd.map((place, index) => {
-          // Generate scattered random positions
-          const x = margin + Math.random() * (defaultCanvasWidth - 2 * margin)
-          const y = margin + Math.random() * (defaultCanvasHeight - 2 * margin)
-          
-          return {
-            x,
-            y,
-            id: Date.now() + index,
-            location: place.formattedAddress || place.name,
-            color: '#808080',
-            placeId: place.placeId
-          }
-        })
-        
-        // Combine with existing pins
-        const allPins = [...existingPins, ...newPins]
-        
-        // Save to localStorage
-        // Note: We preserve the existing state structure, but don't try to restore ImageData
-        // The canvas will handle proper restoration when it loads
-        try {
-          const serialized = {
-            version: existingState?.version || '1.0.0',
-            pins: allPins,
-            groups: existingGroups,
-            transitLines: [],
-            canvasImageData: existingState?.canvasImageData || null,
-            history: existingHistory,
-            historyStep: existingHistoryStep,
-            timestamp: new Date().toISOString()
-          }
-          
-          const storageKey = `canvas_state_${canvasId}`
-          localStorage.setItem(storageKey, JSON.stringify(serialized))
-          localStorage.setItem(`canvas_state_${canvasId}_saved`, new Date().toISOString())
-        } catch (error) {
-          console.error('Failed to save locations automatically:', error)
-        }
-        
-        // Navigate to canvas to show the results
-        history.push(`/canvas/${canvasId}`, {
-          trip
-        })
-      }
     } catch (error) {
       console.error('Error processing ideas:', error)
     } finally {
@@ -495,15 +479,6 @@ export default function IdeaDumpPage() {
               </IonButton>
             </div>
 
-            <label className="id-upload-row">
-              <IonIcon icon={cloudUploadOutline} className="id-upload-icon" />
-              <span className="id-upload-label">Upload file</span>
-              <input
-                type="file"
-                accept="image/*,video/*"
-                onChange={e => onFileUpload(e.target.files)}
-              />
-            </label>
           </div>
         </IonPopover>
 
