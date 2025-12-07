@@ -759,6 +759,14 @@ export const useTransitTool = (
                     </div>
                 </div>
 
+                {/* Transit Tool Enabled Message */}
+                <div className="transit-mode-message">
+                    <div className="transit-mode-message-content">
+                        <span className="transit-mode-icon">🚇</span>
+                        <span>Transit tool enabled. Drag a line between any two points to measure distance and get transit insights.</span>
+                    </div>
+                </div>
+
                 {/* Transit Options Menu */}
                 {menuPosition && selectedLine && (
                     <div

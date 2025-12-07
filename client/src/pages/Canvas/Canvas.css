@@ -35,6 +35,36 @@
     font-size: 16px;
 }
 
+/* Transit mode message overlay */
+.transit-mode-message {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 600;
+    pointer-events: none;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+.transit-mode-message-content {
+    background: rgba(0, 122, 255, 0.95);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+}
+
+.transit-mode-icon {
+    font-size: 16px;
+}
+
 @keyframes fadeInDown {
     from {
         opacity: 0;
