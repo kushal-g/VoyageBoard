@@ -1,4 +1,6 @@
-import type { LocationPin, LocationGroup, TransitLine } from '../pages/Canvas/Canvas'
+import type { LocationPin, LocationGroup } from '../pages/Canvas/Canvas'
+import type { TransitLine } from '../pages/Canvas/tools/Transit'
+import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './indexedDBStorage'
 
 export interface SerializedCanvasState {
   version: string
@@ -78,9 +80,9 @@ export function deserializeCanvasState(
 }
 
 /**
- * Saves canvas state to localStorage
+ * Saves canvas state to IndexedDB
  */
-export function saveCanvasStateToLocalStorage(
+export async function saveCanvasStateToLocalStorage(
   tripId: string,
   pins: LocationPin[],
   groups: LocationGroup[],
@@ -88,49 +90,65 @@ export function saveCanvasStateToLocalStorage(
   canvasImageData: ImageData | null,
   history: ImageData[],
   historyStep: number
-): void {
+): Promise<void> {
+  const serialized = serializeCanvasState(
+    pins,
+    groups,
+    transitLines,
+    canvasImageData,
+    history,
+    historyStep
+  )
+
   try {
-    const serialized = serializeCanvasState(
-      pins,
-      groups,
-      transitLines,
-      canvasImageData,
-      history,
-      historyStep
-    )
-    
-    const storageKey = `canvas_state_${tripId}`
-    localStorage.setItem(storageKey, JSON.stringify(serialized))
-    
-    // Also save a timestamp for last saved
-    localStorage.setItem(`canvas_state_${tripId}_saved`, new Date().toISOString())
+    await saveToIndexedDB(tripId, serialized)
   } catch (error) {
-    console.error('Failed to save canvas state:', error)
+    console.error('Failed to save canvas state to IndexedDB:', error)
     throw error
   }
 }
 
 /**
- * Loads canvas state from localStorage
+ * Loads canvas state from IndexedDB (with localStorage fallback for migration)
  */
-export function loadCanvasStateFromLocalStorage(
+export async function loadCanvasStateFromLocalStorage(
   tripId: string
-): SerializedCanvasState | null {
+): Promise<SerializedCanvasState | null> {
   try {
+    // Try loading from IndexedDB first
+    const data = await loadFromIndexedDB(tripId)
+
+    if (data) {
+      // Validate version compatibility
+      if (data.version !== CURRENT_VERSION) {
+        console.warn(`Canvas state version mismatch: ${data.version} vs ${CURRENT_VERSION}`)
+      }
+      return data as SerializedCanvasState
+    }
+
+    // Fallback: check localStorage for old data and migrate it
     const storageKey = `canvas_state_${tripId}`
     const stored = localStorage.getItem(storageKey)
-    
-    if (!stored) return null
-    
-    const parsed = JSON.parse(stored) as SerializedCanvasState
-    
-    // Validate version compatibility (for future migrations)
-    if (parsed.version !== CURRENT_VERSION) {
-      console.warn(`Canvas state version mismatch: ${parsed.version} vs ${CURRENT_VERSION}`)
-      // Could implement migration logic here
+
+    if (stored) {
+      console.log('Migrating data from localStorage to IndexedDB...')
+      const parsed = JSON.parse(stored) as SerializedCanvasState
+
+      // Migrate to IndexedDB
+      try {
+        await saveToIndexedDB(tripId, parsed)
+        console.log('Migration successful')
+
+        // Optionally remove from localStorage to save space
+        localStorage.removeItem(storageKey)
+      } catch (migrationError) {
+        console.warn('Failed to migrate to IndexedDB:', migrationError)
+      }
+
+      return parsed
     }
-    
-    return parsed
+
+    return null
   } catch (error) {
     console.error('Failed to load canvas state:', error)
     return null
@@ -167,18 +185,37 @@ export function restoreImageDataFromBase64(
 }
 
 /**
- * Checks if canvas state exists in localStorage
+ * Checks if canvas state exists in IndexedDB or localStorage
  */
-export function hasCanvasState(tripId: string): boolean {
-  const storageKey = `canvas_state_${tripId}`
-  return localStorage.getItem(storageKey) !== null
+export async function hasCanvasState(tripId: string): Promise<boolean> {
+  try {
+    // Check IndexedDB first
+    const data = await loadFromIndexedDB(tripId)
+    if (data) return true
+
+    // Fallback to localStorage
+    const storageKey = `canvas_state_${tripId}`
+    return localStorage.getItem(storageKey) !== null
+  } catch (error) {
+    console.error('Failed to check canvas state:', error)
+    return false
+  }
 }
 
 /**
- * Clears canvas state from localStorage
+ * Clears canvas state from IndexedDB and localStorage
  */
-export function clearCanvasState(tripId: string): void {
-  const storageKey = `canvas_state_${tripId}`
-  localStorage.removeItem(storageKey)
-  localStorage.removeItem(`canvas_state_${tripId}_saved`)
+export async function clearCanvasState(tripId: string): Promise<void> {
+  try {
+    // Clear from IndexedDB
+    await deleteFromIndexedDB(tripId)
+
+    // Clear from localStorage (in case of old data)
+    const storageKey = `canvas_state_${tripId}`
+    localStorage.removeItem(storageKey)
+    localStorage.removeItem(`canvas_state_${tripId}_saved`)
+  } catch (error) {
+    console.error('Failed to clear canvas state:', error)
+    throw error
+  }
 }

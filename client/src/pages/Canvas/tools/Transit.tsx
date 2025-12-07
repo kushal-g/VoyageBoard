@@ -9,7 +9,7 @@ interface Point {
     y: number
 }
 
-interface TransitOption {
+export interface TransitOption {
     type: string
     duration: string
     distance?: string
@@ -17,7 +17,7 @@ interface TransitOption {
     provider?: string
 }
 
-interface TransitLine {
+export interface TransitLine {
     start: Point
     end: Point
     distance: number
@@ -228,10 +228,31 @@ export const useTransitTool = (
             if (response.ok) {
                 const data = await response.json()
                 if (data.options && data.options.length > 0) {
-                    const distanceStr = data.summary.recommended.distance
-                    const match = distanceStr?.match(/([\d.]+)\s*km/i)
-                    if (match) {
-                        return parseFloat(match[1])
+                    // Try to get distance from recommended option
+                    const distanceStr = data.summary?.recommended?.distance
+                    if (distanceStr) {
+                        const match = distanceStr.match(/([\d.]+)\s*km/i)
+                        if (match) {
+                            return parseFloat(match[1])
+                        }
+                    }
+
+                    // If no distance in recommended option (e.g., flights), calculate from coordinates
+                    if (data.origin && data.destination) {
+                        const { latitude: lat1, longitude: lon1 } = data.origin
+                        const { latitude: lat2, longitude: lon2 } = data.destination
+
+                        // Haversine formula to calculate distance between two points
+                        const R = 6371 // Earth's radius in kilometers
+                        const dLat = (lat2 - lat1) * Math.PI / 180
+                        const dLon = (lon2 - lon1) * Math.PI / 180
+                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+                        const distance = R * c
+
+                        return distance
                     }
                 }
             }
@@ -518,26 +539,24 @@ export const useTransitTool = (
                 y: rect.top + midY
             })
 
-            // Fetch transit options if not already loaded
-            if (!clickedLine.transitOptions) {
-                setIsLoadingOptions(true)
-                const startPin = pins.find(p => p.id === clickedLine.startPinId)
-                const endPin = pins.find(p => p.id === clickedLine.endPinId)
+            // Always fetch fresh transit options when menu is opened
+            setIsLoadingOptions(true)
+            const startPin = pins.find(p => p.id === clickedLine.startPinId)
+            const endPin = pins.find(p => p.id === clickedLine.endPinId)
 
-                if (startPin?.placeId && endPin?.placeId) {
-                    const options = await fetchTransitOptions(startPin.placeId, endPin.placeId)
+            if (startPin?.placeId && endPin?.placeId) {
+                const options = await fetchTransitOptions(startPin.placeId, endPin.placeId)
 
-                    // Update the line with transit options
-                    if (setSavedLines) {
-                        setSavedLines(prev => prev.map(line =>
-                            line.id === clickedLine.id
-                                ? { ...line, transitOptions: options }
-                                : line
-                        ))
-                    }
+                // Update the line with transit options
+                if (setSavedLines) {
+                    setSavedLines(prev => prev.map(line =>
+                        line.id === clickedLine.id
+                            ? { ...line, transitOptions: options }
+                            : line
+                    ))
                 }
-                setIsLoadingOptions(false)
             }
+            setIsLoadingOptions(false)
             return
         }
 
@@ -622,6 +641,9 @@ export const useTransitTool = (
                 const ctx = canvas.getContext('2d')
                 if (!ctx) return
 
+                // Stop drawing mode immediately to prevent line from following cursor
+                setIsDrawing(false)
+
                 // Clear the preview line by restoring the canvas state
                 if (canvasStateBeforeDrawing.current) {
                     ctx.putImageData(canvasStateBeforeDrawing.current, 0, 0)
@@ -636,6 +658,9 @@ export const useTransitTool = (
                     // Draw the line with loader animation
                     const lineStart = { x: startPin.x, y: startPin.y }
                     const lineEnd = { x: endPin.x, y: endPin.y }
+
+                    // Draw the new line immediately with loader animation
+                    drawLine(ctx, lineStart, lineEnd, 0, 'loader', 0)
 
                     setStartPoint(lineStart)
                     setCurrentPoint(lineEnd)
@@ -699,7 +724,7 @@ export const useTransitTool = (
                 }
             }
 
-            setIsDrawing(false)
+            // Clean up drawing state (isDrawing already set to false earlier)
             setStartPoint(null)
             setStartPinIndex(null)
             setCurrentPoint(null)

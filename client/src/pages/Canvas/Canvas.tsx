@@ -258,8 +258,8 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         onSaveCompleteRef.current = onSaveComplete
     }, [onSaveComplete])
 
-    // Save canvas state to localStorage
-    const saveCanvasState = useCallback(() => {
+    // Save canvas state to IndexedDB
+    const saveCanvasState = useCallback(async () => {
         if (!tripId) return
 
         const canvas = canvasRef.current
@@ -271,7 +271,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
         try {
-            saveCanvasStateToLocalStorage(
+            await saveCanvasStateToLocalStorage(
                 tripId,
                 pins,
                 groups,
@@ -289,11 +289,11 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         }
     }, [tripId, pins, groups, transitLines, history, historyStep])
 
-    // Load canvas state from localStorage
+    // Load canvas state from IndexedDB
     const loadCanvasState = useCallback(async () => {
         if (!tripId) return
 
-        const serialized = loadCanvasStateFromLocalStorage(tripId)
+        const serialized = await loadCanvasStateFromLocalStorage(tripId)
         if (!serialized) return
 
         const canvas = canvasRef.current
