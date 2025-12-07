@@ -57,6 +57,22 @@
   cursor: not-allowed;
 }
 
+/* Delete button active state */
+.location-toolbar button[data-style="ghost"][data-active="true"] {
+  background: rgba(220, 53, 69, 0.15) !important;
+  color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.3) !important;
+}
+
+.location-toolbar button[data-style="ghost"][data-active="true"]:hover {
+  background: rgba(220, 53, 69, 0.25) !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.4) !important;
+}
+
+.location-toolbar button[data-style="ghost"][data-active="true"] svg {
+  color: #dc3545 !important;
+}
+
 .location-toolbar button[data-style="ghost"] svg {
   width: 18px;
   height: 18px;

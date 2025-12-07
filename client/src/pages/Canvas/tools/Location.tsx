@@ -770,27 +770,37 @@ export const useLocationTool = (
     }
 
     const toolbar = (deps: Record<string, any>) => (
-        <LocationToolbar
-            deps={{
-                undo: deps.undo || (() => {}),
-                redo: deps.redo || (() => {}),
-                saveToHistory: deps.saveToHistory || (() => {}),
-                canUndo: deps.historyStep > 0,
-                canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
-                canvasRef: deps.canvasRef,
-            }}
-            pinLocation={pinLocation}
-            filteredDestinations={filteredDestinations}
-            showSuggestions={showSuggestions}
-            setShowSuggestions={setShowSuggestions}
-            onLocationSelect={handleLocationSelect}
-            onLocationChange={handleLocationChange}
-            onAddLocation={handleAddLocation}
-            inputRef={inputRef}
-            isDeleteMode={isDeleteMode}
-            onDeleteModeToggle={handleDeleteModeToggle}
-            isLoadingSuggestions={isLoadingSuggestions}
-        />
+        <>
+            <LocationToolbar
+                deps={{
+                    undo: deps.undo || (() => {}),
+                    redo: deps.redo || (() => {}),
+                    saveToHistory: deps.saveToHistory || (() => {}),
+                    canUndo: deps.historyStep > 0,
+                    canRedo: deps.historyStep < (deps.history?.length || 0) - 1,
+                    canvasRef: deps.canvasRef,
+                }}
+                pinLocation={pinLocation}
+                filteredDestinations={filteredDestinations}
+                showSuggestions={showSuggestions}
+                setShowSuggestions={setShowSuggestions}
+                onLocationSelect={handleLocationSelect}
+                onLocationChange={handleLocationChange}
+                onAddLocation={handleAddLocation}
+                inputRef={inputRef}
+                isDeleteMode={isDeleteMode}
+                onDeleteModeToggle={handleDeleteModeToggle}
+                isLoadingSuggestions={isLoadingSuggestions}
+            />
+            {isDeleteMode && (
+                <div className="delete-mode-message">
+                    <div className="delete-mode-message-content">
+                        <span className="delete-mode-icon">🗑️</span>
+                        <span>Delete mode enabled. Click on a location to remove it.</span>
+                    </div>
+                </div>
+            )}
+        </>
     )
 
     return {

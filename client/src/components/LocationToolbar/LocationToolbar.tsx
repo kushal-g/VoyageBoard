@@ -96,7 +96,7 @@ export default function LocationToolbar({
             data-active={isDeleteMode}
             onClick={onDeleteModeToggle}
             aria-label="Delete Mode"
-            title="Click on location flags to delete them"
+            title={isDeleteMode ? "Click to disable delete mode" : "Click to enable delete mode"}
           >
             <TrashIcon />
           </Button>
