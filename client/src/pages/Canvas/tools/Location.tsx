@@ -229,6 +229,8 @@ export const useLocationTool = (
     const handleDeletePin = (pinIndex: number, deps: Record<string, any>) => {
         if (pinIndex === null || pinIndex < 0 || pinIndex >= pins.length) return
 
+        const pinToDelete = pins[pinIndex]
+
         // Remove the pin from the array
         setPins(prev => {
             const newPins = prev.filter((_, index) => index !== pinIndex)
