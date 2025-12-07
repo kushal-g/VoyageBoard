@@ -269,13 +269,13 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         if (!ctx) return
 
         const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        
+
         try {
             saveCanvasStateToLocalStorage(
                 tripId,
                 pins,
                 groups,
-                [],
+                transitLines,
                 currentImageData,
                 history,
                 historyStep
@@ -287,7 +287,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         } catch (error) {
             console.error('Failed to save canvas state:', error)
         }
-    }, [tripId, pins, groups, history, historyStep])
+    }, [tripId, pins, groups, transitLines, history, historyStep])
 
     // Load canvas state from localStorage
     const loadCanvasState = useCallback(async () => {
@@ -305,9 +305,10 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         isRestoringRef.current = true
 
         try {
-            // Restore pins and groups
+            // Restore pins, groups, and transit lines
             setPins(serialized.pins || [])
             setGroups(serialized.groups || [])
+            setTransitLines(serialized.transitLines || [])
 
             // Restore canvas image data
             if (serialized.canvasImageData) {
@@ -361,17 +362,6 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         })
     }), [saveCanvasState, loadCanvasState, pins, groups, history, historyStep])
 
-    // Auto-save on state changes
-    useEffect(() => {
-        if (!autoSave || !tripId || isRestoringRef.current || !isInitializedRef.current) return
-
-        // Debounce auto-save
-        const timeoutId = setTimeout(() => {
-            saveCanvasState()
-        }, 1000) // Save 1 second after last change
-
-        return () => clearTimeout(timeoutId)
-    }, [pins, groups, history, historyStep, autoSave, tripId, saveCanvasState])
 
     // Load state on mount if tripId is provided
     useEffect(() => {
