@@ -12,7 +12,8 @@ interface Point {
 
 export const useLocationTool = (
     pins: LocationPin[],
-    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>
+    setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
+    transitLines: any[] = []
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
@@ -113,9 +114,14 @@ export const useLocationTool = (
                 })
             }
 
-            // Transit lines will be redrawn by Canvas component's useEffect
+            // Redraw transit lines if any exist
+            if (transitLines.length > 0) {
+                transitLines.forEach(line => {
+                    drawTransitLine(ctx, line.start, line.end, line.distance, 'distance', 0, line.selectedOption)
+                })
+            }
         }
-    }, [pins, pinColor])
+    }, [pins, pinColor, transitLines])
 
     const handleLocationSelect = (location: string) => {
         setPinLocation(location)
@@ -166,6 +172,162 @@ export const useLocationTool = (
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         }
+    }
+
+    // Draw transit line (simplified version from Transit tool)
+    const drawTransitLine = (
+        ctx: CanvasRenderingContext2D,
+        start: Point,
+        end: Point,
+        distance: number,
+        displayMode: 'none' | 'loader' | 'distance' = 'distance',
+        animFrame: number = 0,
+        selectedOption?: any
+    ) => {
+        ctx.save()
+
+        const color = '#000000'
+        const width = 3
+
+        ctx.strokeStyle = color
+        ctx.lineWidth = width
+        ctx.lineCap = 'round'
+        ctx.setLineDash([12, 6])
+
+        ctx.beginPath()
+        ctx.moveTo(start.x, start.y)
+        ctx.lineTo(end.x, end.y)
+        ctx.stroke()
+
+        ctx.setLineDash([])
+
+        const angle = Math.atan2(end.y - start.y, end.x - start.x)
+        const arrowLength = 15
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.moveTo(end.x, end.y)
+        ctx.lineTo(
+            end.x - arrowLength * Math.cos(angle - Math.PI / 6),
+            end.y - arrowLength * Math.sin(angle - Math.PI / 6)
+        )
+        ctx.lineTo(
+            end.x - arrowLength * Math.cos(angle + Math.PI / 6),
+            end.y - arrowLength * Math.sin(angle + Math.PI / 6)
+        )
+        ctx.closePath()
+        ctx.fill()
+
+        const midX = (start.x + end.x) / 2
+        const midY = (start.y + end.y) / 2
+
+        const lineAngle = Math.atan2(end.y - start.y, end.x - start.x)
+
+        if (displayMode === 'distance' && distance > 0) {
+            ctx.save()
+
+            ctx.translate(midX, midY)
+            ctx.rotate(lineAngle)
+
+            if (lineAngle > Math.PI / 2 || lineAngle < -Math.PI / 2) {
+                ctx.rotate(Math.PI)
+            }
+
+            ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'bottom'
+
+            const distanceText = `${distance.toFixed(2)} km`
+            const textMetrics = ctx.measureText(distanceText)
+            const textWidth = textMetrics.width
+            const padding = 6
+            const offsetY = -8
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+            ctx.fillRect(
+                -textWidth / 2 - padding,
+                offsetY - 16,
+                textWidth + padding * 2,
+                20
+            )
+
+            ctx.fillStyle = color
+            ctx.fillText(distanceText, 0, offsetY)
+
+            ctx.restore()
+        }
+
+        // Draw selected transit option details below the line
+        if (selectedOption && displayMode === 'distance') {
+            ctx.save()
+
+            ctx.translate(midX, midY)
+            ctx.rotate(lineAngle)
+
+            if (lineAngle > Math.PI / 2 || lineAngle < -Math.PI / 2) {
+                ctx.rotate(Math.PI)
+            }
+
+            const offsetY = 12
+
+            const formatType = (type: string) => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+            const typeText = formatType(selectedOption.type)
+
+            // Get Material Icon name based on type
+            const type = selectedOption.type.toLowerCase()
+            let iconName = ''
+            if (type === 'drive') iconName = 'directions_car'
+            else if (type === 'bus') iconName = 'directions_bus'
+            else if (type === 'train') iconName = 'directions_transit'
+            else if (type === 'flight') iconName = 'flight'
+            else if (type === 'walk') iconName = 'directions_walk'
+            else if (type === 'bicycle') iconName = 'directions_bike'
+            else iconName = 'circle'
+
+            // Build text without icon
+            const textOnly = `${typeText} • ${selectedOption.duration}${selectedOption.cost ? ' • ' + selectedOption.cost : ''}`
+
+            const iconSize = 16
+            const iconPadding = 6
+
+            // Measure text to get width
+            ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+            const textMetrics = ctx.measureText(textOnly)
+            const textWidth = textMetrics.width
+
+            // Measure icon width
+            ctx.font = `${iconSize}px "Material Icons"`
+            const iconMetrics = ctx.measureText(iconName)
+            const iconWidth = iconMetrics.width || iconSize
+
+            const totalWidth = iconWidth + iconPadding + textWidth
+            const startX = -totalWidth / 2
+
+            // Draw Material Icon
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = '#007aff'
+            ctx.font = `${iconSize}px "Material Icons"`
+            ctx.fillText(iconName, startX, offsetY + 8)
+
+            // Draw text
+            ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+            ctx.fillStyle = '#000000'
+            ctx.fillText(textOnly, startX + iconWidth + iconPadding, offsetY + 8)
+
+            ctx.restore()
+        }
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(start.x, start.y, 5, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.arc(end.x, end.y, 5, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.restore()
     }
 
     // Convert hex color to muted (lighter) version

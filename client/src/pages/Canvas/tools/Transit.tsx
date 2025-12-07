@@ -97,17 +97,35 @@ export const useTransitTool = (
 
     // Update line positions when pins change (but don't draw - let Canvas handle that)
     useEffect(() => {
-        savedLines.forEach(line => {
+        if (!setSavedLines) return
+
+        const hasPositionChanges = savedLines.some(line => {
             const startPin = pins.find(p => p.id === line.startPinId)
             const endPin = pins.find(p => p.id === line.endPinId)
 
             if (startPin && endPin) {
-                // Update line positions
-                line.start = { x: startPin.x, y: startPin.y }
-                line.end = { x: endPin.x, y: endPin.y }
+                return line.start.x !== startPin.x || line.start.y !== startPin.y ||
+                       line.end.x !== endPin.x || line.end.y !== endPin.y
             }
+            return false
         })
-    }, [pins, savedLines])
+
+        if (hasPositionChanges) {
+            setSavedLines(prev => prev.map(line => {
+                const startPin = pins.find(p => p.id === line.startPinId)
+                const endPin = pins.find(p => p.id === line.endPinId)
+
+                if (startPin && endPin) {
+                    return {
+                        ...line,
+                        start: { x: startPin.x, y: startPin.y },
+                        end: { x: endPin.x, y: endPin.y }
+                    }
+                }
+                return line
+            }))
+        }
+    }, [pins, savedLines, setSavedLines])
 
     // Redraw canvas when animation frame changes (to animate the loader)
     useEffect(() => {
@@ -401,32 +419,31 @@ export const useTransitTool = (
             const formatType = (type: string) => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
             const typeText = formatType(selectedOption.type)
 
-            // Get Material Icon Unicode character based on type
+            // Get Material Icon name based on type
             const type = selectedOption.type.toLowerCase()
-            let iconChar = ''
-            // Material Icons Unicode characters
-            if (type === 'drive') iconChar = '\uE531' // directions_car
-            else if (type === 'bus') iconChar = '\uE532' // directions_bus
-            else if (type === 'train') iconChar = '\uE534' // directions_transit
-            else if (type === 'flight') iconChar = '\uE539' // flight
-            else if (type === 'walk') iconChar = '\uE536' // directions_walk
-            else if (type === 'bicycle') iconChar = '\uE52F' // directions_bike
-            else iconChar = '\uE061' // circle
+            let iconName = ''
+            if (type === 'drive') iconName = 'directions_car'
+            else if (type === 'bus') iconName = 'directions_bus'
+            else if (type === 'train') iconName = 'directions_transit'
+            else if (type === 'flight') iconName = 'flight'
+            else if (type === 'walk') iconName = 'directions_walk'
+            else if (type === 'bicycle') iconName = 'directions_bike'
+            else iconName = 'circle'
 
-            // Build text without icon first
+            // Build text without icon
             const textOnly = `${typeText} • ${selectedOption.duration}${selectedOption.cost ? ' • ' + selectedOption.cost : ''}`
 
-            // Draw icon using Material Icons font
             const iconSize = 16
             const iconPadding = 6
 
-            // Measure text to center everything
+            // Measure text to get width
             ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
             const textMetrics = ctx.measureText(textOnly)
             const textWidth = textMetrics.width
 
-            ctx.font = `${iconSize}px 'Material Icons'`
-            const iconMetrics = ctx.measureText(iconChar)
+            // Measure icon width
+            ctx.font = `${iconSize}px "Material Icons"`
+            const iconMetrics = ctx.measureText(iconName)
             const iconWidth = iconMetrics.width || iconSize
 
             const totalWidth = iconWidth + iconPadding + textWidth
@@ -434,14 +451,15 @@ export const useTransitTool = (
 
             // Draw Material Icon
             ctx.textAlign = 'left'
-            ctx.textBaseline = 'top'
+            ctx.textBaseline = 'middle'
             ctx.fillStyle = '#007aff'
-            ctx.fillText(iconChar, startX, offsetY)
+            ctx.font = `${iconSize}px "Material Icons"`
+            ctx.fillText(iconName, startX, offsetY + 8)
 
             // Draw text
             ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
             ctx.fillStyle = '#000000'
-            ctx.fillText(textOnly, startX + iconWidth + iconPadding, offsetY)
+            ctx.fillText(textOnly, startX + iconWidth + iconPadding, offsetY + 8)
 
             ctx.restore()
         }

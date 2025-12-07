@@ -138,7 +138,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     // Tool instances
     const doodleTool = useDoodleTool()
     const eraserTool = useEraserTool(pins) // Pass pins to eraser to check for locations
-    const locationTool = useLocationTool(pins, setPins)
+    const locationTool = useLocationTool(pins, setPins, transitLines)
     const groupLocationTool = useGroupLocationTool(pins, setPins, groups, setGroups)
     const transitTool = useTransitTool(pins, transitLines, setTransitLines)
 
