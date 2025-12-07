@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
+import type { ReactNode } from 'react'
 import type { CanvasTool } from '../types'
 import type { LocationPin, LocationGroup } from '../Canvas'
 import GroupToolbar from '@/components/GroupToolbar/GroupToolbar'
+import './GroupLocation.css'
 
 interface Point {
     x: number
@@ -67,74 +69,7 @@ export const useGroupLocationTool = (
         return null
     }
 
-    // Draw selection indicator (checkmark circle) for selected pins
-    const drawSelectionIndicator = (
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        color: string
-    ) => {
-        ctx.save()
-        
-        // Position checkmark at top-right of flag icon
-        // Flag icon is at (x, y) with flag extending to the right
-        const checkX = x + 10
-        const checkY = y - 18
-        const radius = 14
-        
-        // Draw circle background with shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)'
-        ctx.shadowBlur = 4
-        ctx.shadowOffsetX = 0
-        ctx.shadowOffsetY = 2
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(checkX, checkY, radius, 0, Math.PI * 2)
-        ctx.fill()
-        
-        // Reset shadow
-        ctx.shadowColor = 'transparent'
-        ctx.shadowBlur = 0
-        ctx.shadowOffsetX = 0
-        ctx.shadowOffsetY = 0
-        
-        // Draw white checkmark
-        ctx.strokeStyle = '#ffffff'
-        ctx.lineWidth = 2.5
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.beginPath()
-        // Checkmark path: bottom-left to center to top-right
-        ctx.moveTo(checkX - 5, checkY)
-        ctx.lineTo(checkX - 1, checkY + 4)
-        ctx.lineTo(checkX + 5, checkY - 3)
-        ctx.stroke()
-        
-        ctx.restore()
-    }
-
-    // Draw subtle border for grouped pins (only when hovering or active)
-    const drawGroupBorder = (
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        color: string
-    ) => {
-        ctx.save()
-        
-        const radius = 25
-        
-        // Draw subtle dashed border
-        ctx.strokeStyle = color
-        ctx.lineWidth = 2
-        ctx.setLineDash([4, 4])
-        ctx.beginPath()
-        ctx.arc(x, y, radius, 0, Math.PI * 2)
-        ctx.stroke()
-        ctx.setLineDash([])
-        
-        ctx.restore()
-    }
+    // Selection indicators and borders are now rendered as HTML overlays (see renderSelectionOverlays)
 
     // Draw selection box
     const drawSelectionBox = (
@@ -173,7 +108,7 @@ export const useGroupLocationTool = (
         return pin.x >= x && pin.x <= x + width && pin.y >= y && pin.y <= y + height
     }
 
-    // Redraw selection indicators and selection box
+    // Redraw selection box on canvas (indicators and borders are now HTML overlays)
     const redrawSelectionOverlay = (
         canvas: HTMLCanvasElement,
         ctx: CanvasRenderingContext2D,
@@ -189,28 +124,95 @@ export const useGroupLocationTool = (
             ctx.putImageData(baseCanvasState.current, 0, 0)
         }
 
-        // Draw selection box if active
+        // Draw selection box if active (selection box stays on canvas)
         if (selectionBox) {
             drawSelectionBox(ctx, selectionBox, currentGroupColor)
         }
 
-        // Draw selection indicators (checkmarks) for actively selected pins only
-        pins.forEach((pin) => {
-            if (selectedPinIds.has(pin.id)) {
-                drawSelectionIndicator(ctx, pin.x, pin.y, currentGroupColor)
-            }
-        })
+        // Selection indicators and borders are now rendered as HTML overlays
+    }
 
-        // Draw subtle border for grouped pins only when hovering
-        if (hoverPinIndex !== null) {
-            const hoveredPin = pins[hoverPinIndex]
-            if (hoveredPin) {
-                const group = groups.find(g => g.pinIds.includes(hoveredPin.id))
-                if (group && !selectedPinIds.has(hoveredPin.id)) {
-                    drawGroupBorder(ctx, hoveredPin.x, hoveredPin.y, group.color)
-                }
-            }
-        }
+    // Render selection indicators and borders as HTML overlays
+    const renderSelectionOverlays = (): ReactNode => {
+        return (
+            <div className="group-selection-overlay">
+                {/* Selection indicators (checkmarks) for selected pins */}
+                {pins.map((pin) => {
+                    if (selectedPinIds.has(pin.id)) {
+                        const checkX = pin.x + 10
+                        const checkY = pin.y - 18
+                        return (
+                            <div
+                                key={`indicator-${pin.id}`}
+                                className="selection-indicator"
+                                style={{
+                                    position: 'absolute',
+                                    left: `${checkX}px`,
+                                    top: `${checkY}px`,
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '28px',
+                                    height: '28px',
+                                    backgroundColor: currentGroupColor,
+                                    borderRadius: '50%',
+                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    pointerEvents: 'none',
+                                    zIndex: 200
+                                }}
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 14 14"
+                                    style={{ pointerEvents: 'none' }}
+                                >
+                                    <path
+                                        d="M 2 7 L 6 11 L 12 3"
+                                        stroke="#ffffff"
+                                        strokeWidth="2.5"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </svg>
+                            </div>
+                        )
+                    }
+                    return null
+                })}
+
+                {/* Group border for hovered pin */}
+                {hoverPinIndex !== null && (() => {
+                    const hoveredPin = pins[hoverPinIndex]
+                    if (hoveredPin) {
+                        const group = groups.find(g => g.pinIds.includes(hoveredPin.id))
+                        if (group && !selectedPinIds.has(hoveredPin.id)) {
+                            return (
+                                <div
+                                    key={`border-${hoveredPin.id}`}
+                                    className="group-border"
+                                    style={{
+                                        position: 'absolute',
+                                        left: `${hoveredPin.x}px`,
+                                        top: `${hoveredPin.y}px`,
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '50px',
+                                        height: '50px',
+                                        border: `2px dashed ${group.color}`,
+                                        borderRadius: '50%',
+                                        pointerEvents: 'none',
+                                        zIndex: 150
+                                    }}
+                                />
+                            )
+                        }
+                    }
+                    return null
+                })()}
+            </div>
+        )
     }
 
     // Get the next available day number
@@ -531,6 +533,7 @@ export const useGroupLocationTool = (
 
     return {
         toolbar,
+        selectionOverlays: renderSelectionOverlays(),
         cursor: isSelecting ? 'crosshair' : (hoverPinIndex !== null ? 'pointer' : 'default'),
         onMouseDown,
         onMouseMove,

@@ -138,7 +138,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     // Tool instances
     const doodleTool = useDoodleTool()
     const eraserTool = useEraserTool(pins) // Pass pins to eraser to check for locations
-    const locationTool = useLocationTool(pins, setPins, transitLines)
+    const locationTool = useLocationTool(pins, setPins, transitLines, currentTool)
     const groupLocationTool = useGroupLocationTool(pins, setPins, groups, setGroups)
     const transitTool = useTransitTool(pins, transitLines, setTransitLines)
 
@@ -549,6 +549,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
                     ? locationTool.locationPins(toolDeps)
                     : locationTool.locationPins
             )}
+
+            {/* Render selection overlays from Group Location tool */}
+            {groupLocationTool.selectionOverlays}
 
             {activeTool?.cursorElement}
 

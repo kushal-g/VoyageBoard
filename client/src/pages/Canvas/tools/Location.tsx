@@ -52,7 +52,14 @@ const LocationPinElement = ({
                 <path d="M12 22s-5-5.2-5-10.5a5 5 0 0 1 10 0C17 16.8 12 22 12 22z"/>
                 <circle cx="12" cy="11.5" r="2.4"/>
             </svg>
-            <div className="location-pin-label">
+            <div 
+                className="location-pin-label"
+                style={{
+                    borderColor: (pin as any).color || '#000000',
+                    borderWidth: (pin as any).color ? '2px' : '1px',
+                    backgroundColor: (pin as any).color ? `${(pin as any).color}15` : '#ffffff'
+                }}
+            >
                 {pin.location}
             </div>
         </div>
@@ -62,7 +69,8 @@ const LocationPinElement = ({
 export const useLocationTool = (
     pins: LocationPin[],
     setPins: React.Dispatch<React.SetStateAction<LocationPin[]>>,
-    _transitLines: any[] = []
+    _transitLines: any[] = [],
+    currentTool?: string
 ): CanvasTool => {
     const [pinColor] = useState('#808080') // Default gray color for all locations
     const [pinLocation, setPinLocation] = useState('')
@@ -510,7 +518,8 @@ export const useLocationTool = (
                             left: `${pin.x}px`,
                             top: `${pin.y}px`,
                             transform: 'translate(-50%, -100%)',
-                            pointerEvents: 'auto', // Pins handle their own events
+                            // Only handle events when Location tool is active, otherwise let canvas handle them
+                            pointerEvents: currentTool === 'LOCATION_PIN' ? 'auto' : 'none',
                             zIndex: selectedPinIndex === index ? 1000 : 100
                         }}
                     />
