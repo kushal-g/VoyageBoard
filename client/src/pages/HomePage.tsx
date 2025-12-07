@@ -157,7 +157,7 @@ const HomePage = () => {
               className="create-button"
               onClick={createNewTripboard}
             >
-              Create New Trip Board
+              Create New Canvas
               <IonIcon icon={add} slot="end" />
             </IonButton>
           </div>
