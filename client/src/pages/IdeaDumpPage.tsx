@@ -130,12 +130,15 @@ export default function IdeaDumpPage() {
 
   // Save items to localStorage whenever they change
   useEffect(() => {
-    if (items.length > 0) {
-      try {
+    try {
+      if (items.length > 0) {
         localStorage.setItem(storageKey, JSON.stringify(items))
-      } catch (error) {
-        console.error('Failed to save items to localStorage:', error)
+      } else {
+        // Clear storage when items are empty to avoid pollution
+        localStorage.removeItem(storageKey)
       }
+    } catch (error) {
+      console.error('Failed to save items to localStorage:', error)
     }
   }, [items, storageKey])
 
