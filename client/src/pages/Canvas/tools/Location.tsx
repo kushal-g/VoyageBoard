@@ -477,21 +477,30 @@ export const useLocationTool = (
 
     // Handle pin element mouse down
     const handlePinMouseDown = (e: React.MouseEvent, pinIndex: number, pin: LocationPin) => {
+        console.log('handlePinMouseDown called:', { pinIndex, pinLocation: pin.location, isDeleteMode })
         e.stopPropagation()
 
-        const canvas = canvasRefForRedraw.current
+        // Get canvas from deps (stored in depsRef) or fallback to canvasRefForRedraw
+        const canvas = depsRef.current?.canvasRef?.current || canvasRefForRedraw.current
+        console.log('canvas ref:', canvas ? 'exists' : 'null')
         if (!canvas) return
+
+        // Store canvas ref for future use
+        canvasRefForRedraw.current = canvas
 
         const rect = canvas.getBoundingClientRect()
         const x = e.clientX - rect.left
         const y = e.clientY - rect.top
+        console.log('Mouse position:', { x, y, pinX: pin.x, pinY: pin.y })
 
         // Handle delete mode - delete the pin if clicked
         if (isDeleteMode) {
+            console.log('Delete mode - deleting pin')
             handleDeletePin(pinIndex, depsRef.current || {})
             return
         }
 
+        console.log('Starting drag for pin', pinIndex)
         // Select this location and prepare for dragging
         setSelectedPinIndex(pinIndex)
 
@@ -517,33 +526,40 @@ export const useLocationTool = (
         // Store deps in ref for use in global mouse handlers
         depsRef.current = deps
 
+        console.log('Rendering location pins, currentTool:', currentTool, 'pins count:', pins.length)
+
         return (
             <div className="location-pins-overlay">
-                {pins.map((pin, index) => (
-                    <LocationPinElement
-                        key={pin.id}
-                        pin={pin}
-                        isSelected={selectedPinIndex === index}
-                        isHovered={hoverPinIndex === index}
-                        isDeleteMode={isDeleteMode}
-                        onMouseDown={(e) => handlePinMouseDown(e, index, pin)}
-                        onMouseEnter={() => setHoverPinIndex(index)}
-                        onMouseLeave={() => {
-                            if (hoverPinIndex === index) {
-                                setHoverPinIndex(null)
-                            }
-                        }}
-                        style={{
-                            position: 'absolute',
-                            left: `${pin.x}px`,
-                            top: `${pin.y}px`,
-                            transform: 'translate(-50%, -100%)',
-                            // Only handle events when Location tool is active, otherwise let canvas handle them
-                            pointerEvents: currentTool === 'LOCATION_PIN' ? 'auto' : 'none',
-                            zIndex: selectedPinIndex === index ? 1000 : 100
-                        }}
-                    />
-                ))}
+                {pins.map((pin, index) => {
+                    const isActive = currentTool === 'LOCATION_PIN'
+                    console.log(`Pin ${index} (${pin.location}): pointerEvents = ${isActive ? 'auto' : 'none'}`)
+
+                    return (
+                        <LocationPinElement
+                            key={pin.id}
+                            pin={pin}
+                            isSelected={selectedPinIndex === index}
+                            isHovered={hoverPinIndex === index}
+                            isDeleteMode={isDeleteMode}
+                            onMouseDown={(e) => handlePinMouseDown(e, index, pin)}
+                            onMouseEnter={() => setHoverPinIndex(index)}
+                            onMouseLeave={() => {
+                                if (hoverPinIndex === index) {
+                                    setHoverPinIndex(null)
+                                }
+                            }}
+                            style={{
+                                position: 'absolute',
+                                left: `${pin.x}px`,
+                                top: `${pin.y}px`,
+                                transform: 'translate(-50%, -100%)',
+                                // Only handle events when Location tool is active, otherwise let canvas handle them
+                                pointerEvents: isActive ? 'auto' : 'none',
+                                zIndex: selectedPinIndex === index ? 1000 : 100
+                            }}
+                        />
+                    )
+                })}
             </div>
         )
     }

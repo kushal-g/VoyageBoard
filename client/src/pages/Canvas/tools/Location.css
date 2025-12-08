@@ -13,7 +13,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    pointer-events: auto; /* Pins handle their own mouse events */
+    /* pointer-events controlled via inline style based on currentTool */
     cursor: move;
     user-select: none;
     transition: transform 0.1s ease-out;
@@ -62,4 +62,3 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     border-width: 2px;
 }
-
