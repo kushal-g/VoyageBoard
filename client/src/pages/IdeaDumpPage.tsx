@@ -15,7 +15,7 @@ import {
   IonText,
   IonLoading
 } from '@ionic/react'
-import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add, trash } from 'ionicons/icons'
+import { chevronBack, linkOutline, cloudUploadOutline, playCircle, add, trash, checkmark } from 'ionicons/icons'
 import './IdeaDumpPage.css'
 import { useHistory, useLocation } from 'react-router-dom'
 import { loadCanvasStateFromLocalStorage } from '../utils/canvasSerialization'
@@ -111,6 +111,7 @@ export default function IdeaDumpPage() {
   const [linkValue, setLinkValue] = useState('')
   const [showLeaveAlert, setShowLeaveAlert] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [addedToCanvas, setAddedToCanvas] = useState<Set<string>>(new Set())
 
   const tripId = trip?.id || 'default'
   const storageKey = `idea_dump_${tripId}`
@@ -237,22 +238,24 @@ export default function IdeaDumpPage() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
-  function addLocationToCanvas(idea: Idea) {
+  async function addLocationToCanvas(idea: Idea) {
     if (!idea.placeId) return
 
     const canvasId = trip?.id || '1'
 
     // Load existing canvas state
-    const existingState = loadCanvasStateFromLocalStorage(canvasId)
+    const existingState = await loadCanvasStateFromLocalStorage(canvasId)
     const existingPins = existingState?.pins || []
     const existingGroups = existingState?.groups || []
+    const existingTransitLines = existingState?.transitLines || []
     const existingHistory = existingState?.history || []
     const existingHistoryStep = existingState?.historyStep ?? -1
 
     // Check if this location is already added
     const isAlreadyAdded = existingPins.some(pin => pin.placeId === idea.placeId)
     if (isAlreadyAdded) {
-      // Optionally show a message or just return silently
+      // Mark as added to show checkmark
+      setAddedToCanvas(prev => new Set(prev).add(idea.id))
       return
     }
 
@@ -269,7 +272,7 @@ export default function IdeaDumpPage() {
       x,
       y,
       id: Date.now(),
-      location: idea.formattedAddress || idea.title,
+      location: idea.title,
       color: '#808080',
       placeId: idea.placeId
     }
@@ -277,24 +280,27 @@ export default function IdeaDumpPage() {
     // Combine with existing pins
     const allPins = [...existingPins, newPin]
 
-    // Save to localStorage
-    // Note: We preserve the existing state structure, but don't try to restore ImageData
-    // The canvas will handle proper restoration when it loads
+    // Save to IndexedDB using the proper serialization utilities
     try {
       const serialized = {
         version: existingState?.version || '1.0.0',
         pins: allPins,
         groups: existingGroups,
-        transitLines: [],
+        transitLines: existingTransitLines,
         canvasImageData: existingState?.canvasImageData || null,
         history: existingHistory,
         historyStep: existingHistoryStep,
         timestamp: new Date().toISOString()
       }
 
-      const storageKey = `canvas_state_${canvasId}`
-      localStorage.setItem(storageKey, JSON.stringify(serialized))
-      localStorage.setItem(`canvas_state_${canvasId}_saved`, new Date().toISOString())
+      // Save to IndexedDB
+      const { saveToIndexedDB } = await import('../utils/indexedDBStorage')
+      await saveToIndexedDB(canvasId, serialized)
+
+      console.log('Successfully saved to IndexedDB:', { canvasId, pins: allPins.length })
+
+      // Mark as added to show checkmark
+      setAddedToCanvas(prev => new Set(prev).add(idea.id))
     } catch (error) {
       console.error('Failed to add location to canvas:', error)
     }
@@ -440,13 +446,13 @@ export default function IdeaDumpPage() {
                   <IonButton
                     fill="clear"
                     className="id-add-btn"
-                    onClick={e => {
+                    onClick={async (e) => {
                       e.stopPropagation()
-                      addLocationToCanvas(card)
+                      await addLocationToCanvas(card)
                     }}
-                    title="Add to canvas"
+                    title={addedToCanvas.has(card.id) ? "Added to canvas" : "Add to canvas"}
                   >
-                    <IonIcon icon={add} />
+                    <IonIcon icon={addedToCanvas.has(card.id) ? checkmark : add} />
                   </IonButton>
                 )}
 

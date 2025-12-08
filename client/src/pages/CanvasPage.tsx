@@ -11,6 +11,7 @@ import {
   IonIcon,
   IonTitle,
   IonText,
+  useIonViewWillEnter,
 } from "@ionic/react";
 import { chevronBack, menuOutline, calendarOutline, bulbOutline, saveOutline } from "ionicons/icons";
 import AppStatusBar from "../components/AppStatusBar";
@@ -43,7 +44,7 @@ export default function CanvasPage(props: CanvasPageProps) {
 
   const params = useParams<{ id?: string }>();
   const location =
-    useLocation<{ 
+    useLocation<{
       trip?: { name?: string; lastEdited?: string }
       placesToAdd?: Array<{
         name: string
@@ -172,6 +173,14 @@ export default function CanvasPage(props: CanvasPageProps) {
     }
   };
 
+  // Reload canvas state when navigating back to this page
+  useIonViewWillEnter(() => {
+    if (canvasRef.current && tripId) {
+      console.log('CanvasPage entered, reloading canvas state...')
+      canvasRef.current.load()
+    }
+  }, [tripId]);
+
   return (
     <IonPage>
       <AppStatusBar />
@@ -220,7 +229,7 @@ export default function CanvasPage(props: CanvasPageProps) {
           </IonTitle>
 
           <IonButtons slot="end">
-            <IonButton 
+            <IonButton
               onClick={handleManualSave}
               disabled={isSaving || !tripId}
               title="Save canvas"

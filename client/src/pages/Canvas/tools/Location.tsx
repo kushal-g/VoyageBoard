@@ -52,7 +52,7 @@ const LocationPinElement = ({
                 <path d="M12 22s-5-5.2-5-10.5a5 5 0 0 1 10 0C17 16.8 12 22 12 22z"/>
                 <circle cx="12" cy="11.5" r="2.4"/>
             </svg>
-            <div 
+            <div
                 className="location-pin-label"
                 style={{
                     borderColor: (pin as any).color || '#000000',
@@ -107,7 +107,7 @@ export const useLocationTool = (
         // Debounce API calls (wait 300ms after user stops typing)
         debounceTimer.current = setTimeout(async () => {
             setIsLoadingSuggestions(true)
-            
+
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
                 const response = await fetch(
@@ -237,6 +237,24 @@ export const useLocationTool = (
             return newPins
         })
 
+        // Remove the pin from any groups it belongs to
+        if (deps.setGroups && pinToDelete.id) {
+            deps.setGroups((prevGroups: any[]) => {
+                return prevGroups.map(group => {
+                    if (group.pinIds.includes(pinToDelete.id)) {
+                        return {
+                            ...group,
+                            pinIds: group.pinIds.filter((id: number) => id !== pinToDelete.id)
+                        }
+                    }
+                    return group
+                }).filter((group: any) => group.pinIds.length > 0) // Remove empty groups
+            })
+        }
+
+        // Clear selection
+        setSelectedPinIndex(null)
+
         // Save to history after a small delay to ensure state update is complete
         if (deps.saveToHistory) {
             setTimeout(() => {
@@ -250,7 +268,7 @@ export const useLocationTool = (
     // Handle adding location via button click - add immediately to center of canvas
     const handleAddLocation = (canvasRef: React.RefObject<HTMLCanvasElement | null> | undefined) => {
         if (!pinLocation.trim() || filteredDestinations.length === 0) return
-        
+
         const canvas = canvasRef?.current
         if (!canvas) {
             console.warn('Canvas ref not available')
@@ -440,7 +458,7 @@ export const useLocationTool = (
                 if (hasMoved.current && depsRef.current?.saveToHistory) {
                     depsRef.current.saveToHistory()
                 }
-                
+
                 setIsDragging(false)
                 dragOffset.current = null
                 mouseDownPosition.current = null
@@ -460,7 +478,7 @@ export const useLocationTool = (
     // Handle pin element mouse down
     const handlePinMouseDown = (e: React.MouseEvent, pinIndex: number, pin: LocationPin) => {
         e.stopPropagation()
-        
+
         const canvas = canvasRefForRedraw.current
         if (!canvas) return
 
@@ -470,7 +488,7 @@ export const useLocationTool = (
 
         // Handle delete mode - delete the pin if clicked
         if (isDeleteMode) {
-            handleDeletePin(pinIndex, { saveToHistory: () => {} })
+            handleDeletePin(pinIndex, depsRef.current || {})
             return
         }
 
@@ -567,7 +585,7 @@ export const useLocationTool = (
     return {
         toolbar,
         locationPins: (deps: Record<string, any>) => renderLocationPins(deps),
-        cursor: isDeleteMode 
+        cursor: isDeleteMode
             ? (hoverPinIndex !== null ? 'pointer' : 'default')
             : (hoverPinIndex !== null ? 'move' : 'default'),
         onMouseDown,

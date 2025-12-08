@@ -294,7 +294,12 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         if (!tripId) return
 
         const serialized = await loadCanvasStateFromLocalStorage(tripId)
-        if (!serialized) return
+        if (!serialized) {
+            console.log('No canvas state found for tripId:', tripId)
+            return
+        }
+
+        console.log('Loading canvas state:', { tripId, pins: serialized.pins?.length || 0 })
 
         const canvas = canvasRef.current
         if (!canvas) return
@@ -384,6 +389,22 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             clearInterval(checkCanvas)
             // Reset flag on cleanup when tripId changes
             isInitializedRef.current = false
+        }
+    }, [tripId, loadCanvasState])
+
+    // Reload state when page becomes visible (e.g., navigating back from Idea Dump)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && tripId && isInitializedRef.current) {
+                console.log('Page became visible, reloading canvas state...')
+                loadCanvasState()
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
     }, [tripId, loadCanvasState])
 
@@ -558,7 +579,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             {activeTool?.messageOverlay}
 
             {activeTool?.toolbar && (
-                typeof activeTool.toolbar === 'function' 
+                typeof activeTool.toolbar === 'function'
                     ? activeTool.toolbar(toolDeps)
                     : activeTool.toolbar
             )}
