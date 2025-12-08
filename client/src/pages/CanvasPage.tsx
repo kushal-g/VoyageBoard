@@ -13,7 +13,7 @@ import {
   IonText,
   useIonViewWillEnter,
 } from "@ionic/react";
-import { chevronBack, menuOutline, calendarOutline, bulbOutline, saveOutline } from "ionicons/icons";
+import { chevronBack, menuOutline, calendarOutline, bulbOutline, saveOutline, syncOutline } from "ionicons/icons";
 import AppStatusBar from "../components/AppStatusBar";
 import "./CanvasPage.css";
 import Canvas, { type CanvasHandle } from "./Canvas/Canvas";
@@ -77,7 +77,7 @@ export default function CanvasPage(props: CanvasPageProps) {
     const storageKey = `canvas_${tripId}_lastEdited`;
     const storedLastEdited = tripId ? localStorage.getItem(storageKey) : null;
 
-    const rawLastEdited: any = routeTrip?.lastEdited ?? props.lastEdited ?? storedLastEdited;
+    const rawLastEdited = routeTrip?.lastEdited ?? props.lastEdited ?? storedLastEdited;
     const formattedLastEdited =
       typeof rawLastEdited === "string"
         ? rawLastEdited
@@ -156,12 +156,15 @@ export default function CanvasPage(props: CanvasPageProps) {
     setIsEditingTitle(false);
   };
 
-  const handleManualSave = () => {
+  const handleManualSave = async () => {
     if (canvasRef.current) {
       setIsSaving(true);
-      canvasRef.current.save();
-      // Reset saving state after a short delay
-      setTimeout(() => setIsSaving(false), 500);
+      try {
+        await canvasRef.current.save();
+      } finally {
+        // Reset saving state after a short delay to show the animation
+        setTimeout(() => setIsSaving(false), 800);
+      }
     }
   };
 
@@ -224,7 +227,21 @@ export default function CanvasPage(props: CanvasPageProps) {
                   {tripName}
                 </div>
               )}
-              <IonText className="canvas-subtitle">Last Edited: {lastEdited}</IonText>
+              <IonText className="canvas-subtitle">
+                {isSaving && (
+                  <span style={{ color: '#3880ff', marginRight: '8px', display: 'inline-flex', alignItems: 'center' }}>
+                    <IonIcon
+                      icon={syncOutline}
+                      style={{
+                        animation: 'spin 1s linear infinite',
+                        marginRight: '4px'
+                      }}
+                    />
+                    Saving...
+                  </span>
+                )}
+                Last Saved: {lastEdited}
+              </IonText>
             </div>
           </IonTitle>
 
