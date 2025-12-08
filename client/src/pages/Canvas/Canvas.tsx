@@ -9,9 +9,9 @@ import { useTransitTool } from './tools/Transit'
 import {
     saveCanvasStateToLocalStorage,
     loadCanvasStateFromLocalStorage,
-    restoreImageDataFromBase64,
-    type SerializedCanvasState
+    restoreImageDataFromBase64
 } from '../../utils/canvasSerialization'
+import { renderDrawingPrimitives, type DrawingPrimitive } from '../../utils/canvasDrawingPrimitives'
 
 interface CanvasProps {
     currentTool: TOOL
@@ -75,9 +75,53 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     const [pins, setPins] = useState<LocationPin[]>([])
     const [groups, setGroups] = useState<LocationGroup[]>([])
     const [transitLines, setTransitLines] = useState<any[]>([])
+    const [drawingPrimitives, setDrawingPrimitives] = useState<DrawingPrimitive[]>([])
     const addedPlacesRef = useRef<Set<string>>(new Set())
     const isInitializedRef = useRef(false)
     const isRestoringRef = useRef(false)
+    const isRenderingRef = useRef(false)
+
+    // Sync transit lines to drawing primitives
+    useEffect(() => {
+        // Convert transit lines to drawing primitives
+        const transitPrimitives: DrawingPrimitive[] = transitLines.map(line => ({
+            type: 'transit' as const,
+            id: `transit-${line.id}`,
+            start: line.start,
+            end: line.end,
+            distance: line.distance,
+            color: '#000000',
+            selectedOption: line.selectedOption,
+            timestamp: line.id
+        }))
+
+        // Update drawing primitives to only include non-transit primitives + new transit primitives
+        setDrawingPrimitives(prev => {
+            const nonTransit = prev.filter(p => p.type !== 'transit')
+            return [...nonTransit, ...transitPrimitives]
+        })
+    }, [transitLines])
+
+    // Render canvas from drawing primitives whenever they change
+    useEffect(() => {
+        const canvas = canvasRef.current
+        if (!canvas || isRenderingRef.current || !isInitializedRef.current) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        isRenderingRef.current = true
+
+        // Get device pixel ratio for accurate rendering
+        const rect = canvas.getBoundingClientRect()
+        const width = rect.width
+        const height = rect.height
+
+        // Reconstruct canvas from drawing primitives
+        renderDrawingPrimitives(ctx, drawingPrimitives, width, height)
+
+        isRenderingRef.current = false
+    }, [drawingPrimitives])
 
     // Notify parent of changes
     useEffect(() => {
@@ -407,6 +451,22 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
     }, [tripId, loadCanvasState])
+
+    // Redraw transit lines when they change (e.g., when pins are moved)
+    useEffect(() => {
+        if (!canvasRef.current || transitLines.length === 0 || isRestoringRef.current) return
+
+        const canvas = canvasRef.current
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        // Get the current canvas state
+        const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+        // This effect will be triggered by the Transit tool's update to transitLines
+        // The Transit tool already handles the redraw logic, so we don't need to do anything here
+        // This is just a placeholder to ensure the component knows about transit line changes
+    }, [transitLines])
 
     const clearCanvas = () => {
         const canvas = canvasRef.current

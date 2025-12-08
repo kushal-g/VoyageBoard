@@ -95,7 +95,7 @@ export const useTransitTool = (
         }
     }, [showLoader])
 
-    // Update line positions when pins change (but don't draw - let Canvas handle that)
+    // Update line positions when pins change and redraw them
     useEffect(() => {
         if (!setSavedLines) return
 
@@ -111,7 +111,8 @@ export const useTransitTool = (
         })
 
         if (hasPositionChanges) {
-            setSavedLines(prev => prev.map(line => {
+            // Update line positions - Canvas will automatically re-render from primitives
+            const updatedLines = savedLines.map(line => {
                 const startPin = pins.find(p => p.id === line.startPinId)
                 const endPin = pins.find(p => p.id === line.endPinId)
 
@@ -123,7 +124,9 @@ export const useTransitTool = (
                     }
                 }
                 return line
-            }))
+            })
+
+            setSavedLines(updatedLines)
         }
     }, [pins, savedLines, setSavedLines])
 
