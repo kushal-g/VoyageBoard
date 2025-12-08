@@ -194,7 +194,17 @@ Important: Return ONLY the JSON array, no additional text or explanation.`;
         })
       );
 
-      return enrichedPlaces;
+      // Filter out duplicates based on placeId and exclude places without placeId
+      const uniquePlaces = enrichedPlaces.reduce<TravelPlace[]>((acc, place) => {
+        // Only add if place has a placeId and it doesn't exist yet in the accumulator
+        if (place.placeId && !acc.some(p => p.placeId === place.placeId)) {
+          acc.push(place);
+        }
+        return acc;
+      }, []);
+
+      console.log(`Returning ${uniquePlaces.length} unique places with placeIds (filtered from ${enrichedPlaces.length})`);
+      return uniquePlaces;
     }
 
     return places;
