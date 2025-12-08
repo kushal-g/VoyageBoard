@@ -46,6 +46,7 @@ export interface EraserStroke {
 
 /**
  * Renders all drawing primitives onto a canvas context
+ * Eraser strokes only affect doodle primitives, not transit lines
  */
 export function renderDrawingPrimitives(
   ctx: CanvasRenderingContext2D,
@@ -57,20 +58,88 @@ export function renderDrawingPrimitives(
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-  // Render each primitive in order
+  // Separate primitives by type
+  const doodleStrokes: DoodleStroke[] = []
+  const transitLines: TransitLineDrawing[] = []
+  const eraserStrokes: EraserStroke[] = []
+
   for (const primitive of primitives) {
-    switch (primitive.type) {
-      case 'doodle':
-        renderDoodleStroke(ctx, primitive)
-        break
-      case 'transit':
-        renderTransitLine(ctx, primitive)
-        break
-      case 'eraser':
-        renderEraserStroke(ctx, primitive)
-        break
+    if (primitive.type === 'doodle') {
+      doodleStrokes.push(primitive)
+    } else if (primitive.type === 'transit') {
+      transitLines.push(primitive)
+    } else if (primitive.type === 'eraser') {
+      eraserStrokes.push(primitive)
     }
   }
+
+  // Filter doodle strokes to remove parts that were erased
+  const visibleDoodles = filterErasedDoodles(doodleStrokes, eraserStrokes)
+
+  // Render visible doodles
+  for (const doodle of visibleDoodles) {
+    renderDoodleStroke(ctx, doodle)
+  }
+
+  // Render all transit lines (not affected by eraser)
+  for (const transit of transitLines) {
+    renderTransitLine(ctx, transit)
+  }
+}
+
+/**
+ * Filters doodle strokes to remove segments that overlap with eraser strokes
+ */
+function filterErasedDoodles(doodles: DoodleStroke[], erasers: EraserStroke[]): DoodleStroke[] {
+  if (erasers.length === 0) return doodles
+
+  const result: DoodleStroke[] = []
+
+  for (const doodle of doodles) {
+    const newPoints: Array<{ x: number; y: number }> = []
+
+    for (const point of doodle.points) {
+      let isErased = false
+
+      // Check if this point overlaps with any eraser stroke
+      for (const eraser of erasers) {
+        for (const eraserPoint of eraser.points) {
+          const dx = point.x - eraserPoint.x
+          const dy = point.y - eraserPoint.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance < eraser.eraserSize / 2 + doodle.lineWidth / 2) {
+            isErased = true
+            break
+          }
+        }
+        if (isErased) break
+      }
+
+      if (!isErased) {
+        newPoints.push(point)
+      } else if (newPoints.length > 0) {
+        // Create a new stroke segment for points before the erased section
+        result.push({
+          ...doodle,
+          id: `${doodle.id}-segment-${result.length}`,
+          points: newPoints.slice()
+        })
+        newPoints.length = 0
+      }
+    }
+
+    // Add remaining points as a final segment
+    if (newPoints.length > 0) {
+      result.push({
+        ...doodle,
+        id: `${doodle.id}-segment-${result.length}`,
+        points: newPoints
+      })
+    }
+  }
+
+  return result
 }
 
 function renderDoodleStroke(ctx: CanvasRenderingContext2D, stroke: DoodleStroke): void {
@@ -230,21 +299,6 @@ function renderTransitLine(ctx: CanvasRenderingContext2D, line: TransitLineDrawi
   ctx.beginPath()
   ctx.arc(line.end.x, line.end.y, 5, 0, Math.PI * 2)
   ctx.fill()
-
-  ctx.restore()
-}
-
-function renderEraserStroke(ctx: CanvasRenderingContext2D, stroke: EraserStroke): void {
-  if (stroke.points.length < 1) return
-
-  ctx.save()
-  ctx.fillStyle = '#ffffff'
-
-  for (const point of stroke.points) {
-    ctx.beginPath()
-    ctx.arc(point.x, point.y, stroke.eraserSize / 2, 0, Math.PI * 2)
-    ctx.fill()
-  }
 
   ctx.restore()
 }

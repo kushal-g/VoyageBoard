@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import type { CanvasTool } from '../types'
+import type { DrawingPrimitive } from '../../utils/canvasDrawingPrimitives'
 
 interface Point {
     x: number
@@ -8,13 +9,20 @@ interface Point {
 
 interface EraserToolProps {
     pins?: Array<{ x: number; y: number; id: number }>
+    transitLines?: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>
 }
 
-export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>): CanvasTool => {
+export const useEraserTool = (
+    pins?: Array<{ x: number; y: number; id: number }>,
+    transitLines?: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>,
+    drawingPrimitives?: DrawingPrimitive[],
+    setDrawingPrimitives?: React.Dispatch<React.SetStateAction<DrawingPrimitive[]>>
+): CanvasTool => {
     const [eraserSize, setEraserSize] = useState(20)
     const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
     const [isVisible, setIsVisible] = useState(false)
     const isErasingRef = useRef(false)
+    const eraserPointsRef = useRef<Point[]>([])
 
     // Check if point is near a location flag (within clickable radius)
     const isNearLocation = (x: number, y: number): boolean => {
@@ -26,6 +34,38 @@ export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>
             const dy = y - pin.y
             const distance = Math.sqrt(dx * dx + dy * dy)
             if (distance <= clickRadius) {
+                return true
+            }
+        }
+        return false
+    }
+
+    // Check if point is near a transit line
+    const isNearTransitLine = (x: number, y: number): boolean => {
+        if (!transitLines || transitLines.length === 0) return false
+        const tolerance = eraserSize / 2 + 5 // Eraser radius + small buffer
+
+        for (const line of transitLines) {
+            const { start, end } = line
+
+            // Calculate distance from point to line segment
+            const dx = end.x - start.x
+            const dy = end.y - start.y
+            const lineLength = Math.sqrt(dx * dx + dy * dy)
+
+            if (lineLength === 0) continue
+
+            const px = x - start.x
+            const py = y - start.y
+
+            const t = Math.max(0, Math.min(1, (px * dx + py * dy) / (lineLength * lineLength)))
+
+            const closestX = start.x + t * dx
+            const closestY = start.y + t * dy
+
+            const distance = Math.sqrt((x - closestX) ** 2 + (y - closestY) ** 2)
+
+            if (distance <= tolerance) {
                 return true
             }
         }
@@ -52,26 +92,15 @@ export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>
         e: React.MouseEvent<HTMLCanvasElement>,
         _deps: Record<string, any>
     ) => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
         const { x, y } = getCoordinates(canvasRef, e)
 
-        // Don't erase if clicking on a location flag/badge
-        if (isNearLocation(x, y)) {
+        // Don't erase if clicking on a location flag/badge or transit line
+        if (isNearLocation(x, y) || isNearTransitLine(x, y)) {
             return
         }
 
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.lineWidth = eraserSize
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-
-        ctx.beginPath()
-        ctx.moveTo(x, y)
+        // Start collecting eraser points
+        eraserPointsRef.current = [{ x, y }]
         isErasingRef.current = true
     }
 
@@ -81,29 +110,23 @@ export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>
         _deps: Record<string, any>
     ) => {
         const { x, y } = getCoordinates(canvasRef, e)
-        
+
         // Use client coordinates for fixed positioning cursor
-        setCursorPosition({ 
-            x: e.clientX, 
-            y: e.clientY 
+        setCursorPosition({
+            x: e.clientX,
+            y: e.clientY
         })
         setIsVisible(true)
 
         if (!isErasingRef.current) return
 
-        const canvas = canvasRef.current
-        if (!canvas) return
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        // Don't erase if hovering over a location flag/badge
-        if (isNearLocation(x, y)) {
+        // Don't erase if hovering over a location flag/badge or transit line
+        if (isNearLocation(x, y) || isNearTransitLine(x, y)) {
             return
         }
 
-        ctx.lineTo(x, y)
-        ctx.stroke()
+        // Collect eraser points
+        eraserPointsRef.current.push({ x, y })
     }
 
     const onMouseUp = (
@@ -113,6 +136,21 @@ export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>
     ) => {
         if (isErasingRef.current) {
             isErasingRef.current = false
+
+            // Add eraser stroke to drawing primitives
+            if (setDrawingPrimitives && eraserPointsRef.current.length > 0) {
+                const eraserStroke: DrawingPrimitive = {
+                    type: 'eraser',
+                    id: `eraser-${Date.now()}`,
+                    points: [...eraserPointsRef.current],
+                    eraserSize: eraserSize,
+                    timestamp: Date.now()
+                }
+
+                setDrawingPrimitives(prev => [...prev, eraserStroke])
+                eraserPointsRef.current = []
+            }
+
             // Call saveToHistory if provided in deps
             if (deps.saveToHistory) {
                 deps.saveToHistory()
@@ -128,6 +166,21 @@ export const useEraserTool = (pins?: Array<{ x: number; y: number; id: number }>
         setIsVisible(false)
         if (isErasingRef.current) {
             isErasingRef.current = false
+
+            // Add eraser stroke to drawing primitives
+            if (setDrawingPrimitives && eraserPointsRef.current.length > 0) {
+                const eraserStroke: DrawingPrimitive = {
+                    type: 'eraser',
+                    id: `eraser-${Date.now()}`,
+                    points: [...eraserPointsRef.current],
+                    eraserSize: eraserSize,
+                    timestamp: Date.now()
+                }
+
+                setDrawingPrimitives(prev => [...prev, eraserStroke])
+                eraserPointsRef.current = []
+            }
+
             // Call saveToHistory if provided in deps
             if (deps.saveToHistory) {
                 deps.saveToHistory()

@@ -80,6 +80,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     const isInitializedRef = useRef(false)
     const isRestoringRef = useRef(false)
     const isRenderingRef = useRef(false)
+    const skipRenderRef = useRef(false)
 
     // Sync transit lines to drawing primitives
     useEffect(() => {
@@ -105,7 +106,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     // Render canvas from drawing primitives whenever they change
     useEffect(() => {
         const canvas = canvasRef.current
-        if (!canvas || isRenderingRef.current || !isInitializedRef.current) return
+        if (!canvas || isRenderingRef.current || !isInitializedRef.current || skipRenderRef.current) return
 
         const ctx = canvas.getContext('2d')
         if (!ctx) return
@@ -181,7 +182,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
     // Tool instances
     const doodleTool = useDoodleTool()
-    const eraserTool = useEraserTool(pins) // Pass pins to eraser to check for locations
+    const eraserTool = useEraserTool(pins, transitLines, drawingPrimitives, setDrawingPrimitives) // Pass primitives to eraser
     const locationTool = useLocationTool(pins, setPins, transitLines, currentTool)
     const groupLocationTool = useGroupLocationTool(pins, setPins, groups, setGroups)
     const transitTool = useTransitTool(pins, transitLines, setTransitLines)
@@ -519,6 +520,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         canvasRef, // Pass canvas ref to tools
         groups, // Pass groups to tools
         setGroups, // Pass setGroups to tools
+        skipRenderRef, // Pass skipRenderRef to tools (for eraser)
     }
 
     const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

@@ -894,6 +894,46 @@ export const useTransitTool = (
                                 No transit options available
                             </div>
                         )}
+
+                        {/* Delete Button */}
+                        <button
+                            onClick={() => {
+                                if (setSavedLines && selectedLineId !== null) {
+                                    // Remove the line from state
+                                    setSavedLines(prev => prev.filter(line => line.id !== selectedLineId))
+
+                                    // Close the menu
+                                    setSelectedLineId(null)
+                                    setMenuPosition(null)
+                                }
+                            }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '10px',
+                                marginTop: '8px',
+                                background: '#ffffff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'background 0.2s',
+                                fontSize: '15px',
+                                fontWeight: '400',
+                                color: '#ff3b30',
+                                width: '100%',
+                                WebkitTapHighlightColor: 'transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f5f5f5'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#ffffff'
+                            }}
+                        >
+                            <span>Delete Transit Line</span>
+                        </button>
                     </div>
                 )}
             </>
